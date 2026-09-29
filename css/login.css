@@ -1,0 +1,238 @@
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  font-family: 'Inter', sans-serif; 
+}
+
+body { 
+  background: #0f172a; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  min-height: 100vh; 
+  padding: 20px; 
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 🌟 Background Image Banner */
+.page-bg-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('../images/Carlift Registration 1.png'); 
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: brightness(0.65);
+  z-index: 0;
+}
+
+/* 🌟 Login Card na may Header Styles hango sa Index */
+.login-card { 
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.98); 
+  width: 100%; 
+  max-width: 420px; 
+  border-radius: 16px; 
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); 
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 🌟 Horizontal & Centered Brand Logo Header (Katulad ng nasa larawan) */
+.brand-logo { 
+  background: #0f172a; 
+  color: #ffffff; 
+  padding: 22px 20px; 
+  border-bottom: 3px solid #2563eb; 
+  display: flex;
+  align-items: center; 
+  justify-content: center; /* Naka-center horizontally */
+  gap: 14px; /* Distansya sa pagitan ng logo at text container */
+  margin-bottom: 24px;
+}
+
+/* Logo Image styling */
+.login-logo-img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Text Container na naka-align sa kaliwa ang text pero magkasunod ang title at subtitle */
+.brand-text-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+}
+
+.brand-title {
+  font-size: 17px; 
+  font-weight: 800; 
+  letter-spacing: -0.5px; 
+  margin: 0;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+.brand-subtitle {
+  font-size: 11px; 
+  color: #94a3b8; 
+  margin-top: 3px;
+}
+/* Padding para sa mga form sa loob ng card */
+#loginForm, #recoveryForm {
+  padding: 0 24px 24px 24px;
+}
+
+#alertBox {
+  margin: 0 24px 16px 24px;
+}
+
+.form-group { 
+  margin-bottom: 16px; 
+  position: relative; 
+}
+
+label { 
+  font-size: 12px; 
+  font-weight: 700; 
+  color: #475569; 
+  text-transform: uppercase; 
+  margin-bottom: 6px; 
+  display: block; 
+  letter-spacing: 0.5px;
+}
+
+.input-wrapper { 
+  position: relative; 
+  display: flex; 
+  align-items: center; 
+}
+
+input { 
+  width: 100%; 
+  padding: 12px 42px 12px 14px; 
+  border: 1px solid #cbd5e1; 
+  border-radius: 8px; 
+  font-size: 14px; 
+  color: #1e293b;
+  outline: none; 
+  transition: all 0.2s ease;
+  background: white;
+}
+
+input:focus { 
+  border-color: #2563eb; 
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); 
+}
+
+.toggle-icon { 
+  position: absolute; 
+  right: 14px; 
+  color: #94a3b8; 
+  cursor: pointer; 
+  font-size: 16px; 
+  transition: color 0.2s; 
+  user-select: none;
+}
+
+.toggle-icon:hover { 
+  color: #2563eb; 
+}
+
+.form-actions-link {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+  margin-bottom: 14px;
+}
+
+.forgot-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+.btn-submit { 
+  width: 100%; 
+  background: #2563eb; 
+  color: white; 
+  padding: 12px; 
+  border: none; 
+  border-radius: 8px; 
+  font-weight: 700; 
+  font-size: 14px; 
+  cursor: pointer; 
+  margin-top: 6px; 
+  transition: background 0.2s, transform 0.1s; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-submit:hover { 
+  background: #1d4ed8; 
+}
+
+.btn-submit:active {
+  transform: scale(0.99);
+}
+
+.btn-submit:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  margin-top: 8px;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+.alert-msg { 
+  padding: 10px 14px; 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  margin-bottom: 16px; 
+  display: none; 
+  text-align: center; 
+}
+
+.alert-msg.error {
+  background: #fee2e2; 
+  color: #dc2626; 
+  border: 1px solid #fca5a5;
+}
+
+.alert-msg.success {
+  background: #dcfce7; 
+  color: #166534; 
+  border: 1px solid #86efac;
+}
+
+.hidden {
+  display: none !important;
+}
