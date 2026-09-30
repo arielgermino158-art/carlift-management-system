@@ -51,7 +51,6 @@ body {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 5005px;
   max-width: 480px; /* Sakto ang max width para sa form cards */
   height: 100%;
   max-height: 100vh;
@@ -78,19 +77,24 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* CARD HEADER STYLING */
+/* CARD HEADER STYLING - Naka-center na ang logo at title/subtitle */
 .card-header {  
   background: #0f172a;  
   color: #ffffff;  
-  padding: 18px 22px;  
+  padding: 18px 20px;  
   border-bottom: 3px solid var(--primary);
   flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .header-brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
+  text-align: left;
 }
 
 .header-logo {
@@ -107,7 +111,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  text-align: left;
 }
 
 .header-text h2 {  
