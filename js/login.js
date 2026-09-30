@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoading(btnSubmit, true, 'Signing in...');
 
       try {
-        const response = await fetch('http://localhost:3000/api/admin/login', {
+        const response = await fetch('/api/admin/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showAlert(result.message || 'Invalid Admin Credentials', 'error', true);
         }
       } catch (err) {
-        showAlert('Server error. Make sure node server.js is running on port 3000.', 'error', true);
+        showAlert('Server error. Make sure node server.js is running.', 'error', true);
       } finally {
         setLoading(btnSubmit, false, 'Sign In to Dashboard');
       }
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoading(btnResetSubmit, true, 'Resetting...');
 
       try {
-        const res = await fetch('http://localhost:3000/api/admin/reset-password', {
+        const res = await fetch('/api/admin/reset-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, pin: recoveryPin, newPassword })
