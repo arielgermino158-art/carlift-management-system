@@ -1,5 +1,5 @@
 /* ================= CONFIGURATION & GLOBALS ================= */
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = '/api';
 
 let globalPassengerData = [];
 let globalPaymentData = [];
@@ -957,7 +957,6 @@ async function confirmUpdateWorkingTime() {
     return;
   }
 
-  // Format nang walang leading zero at may slash sa gitna (e.g., 9:30 AM / 6:30 PM)
   const formatTime = (timeStr) => {
     if (!timeStr) return '9:30 AM';
     const [h, m] = timeStr.split(':');
@@ -1010,15 +1009,11 @@ function initChart(passengersData, paymentsData) {
 
   const ctx = canvasElem.getContext('2d');
 
-  // Kalkulahin ang kabuuang nakolekta mula sa payment records
   const totalCollected = paymentsData.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-
-  // Kalkulahin ang kabuuang inaasahan (AED 250 kada active passenger) minus ang nakolekta na
   const activePassengers = passengersData.filter(p => p.status === 'Active');
   const totalExpectedRevenue = activePassengers.length * 250;
   const totalPending = Math.max(0, totalExpectedRevenue - totalCollected);
 
-  // I-update ang mga side summary text kung meron man sa HTML
   const collectedTextElem = document.getElementById('donutCollectedText');
   const pendingTextElem = document.getElementById('donutPendingText');
   if (collectedTextElem) collectedTextElem.innerText = `AED ${totalCollected.toLocaleString()}`;
@@ -1026,7 +1021,7 @@ function initChart(passengersData, paymentsData) {
 
   const chartData = [totalCollected, totalPending];
   if (totalCollected === 0 && totalPending === 0) {
-    chartData[0] = 1; // Placeholder para di masira ang chart kung zero pa lahat
+    chartData[0] = 1;
   }
 
   if (revenueChartInstance) {
