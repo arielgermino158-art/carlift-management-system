@@ -71,7 +71,7 @@ async function sendChatMessage() {
   chatBox.scrollTop = chatBox.scrollHeight;
 
   try {
-    const response = await fetch('http://localhost:3000/api/ai-chat', {
+    const response = await fetch('/api/ai-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: message })
@@ -179,11 +179,11 @@ async function proceedRegistration() {
     pickup: document.getElementById('pickup').value.trim(),
     dropoff: document.getElementById('dropoff').value.trim(),
     schedule: combinedSchedule,
-    join_date: formattedJoinDate // Eksaktong DD-MM-YYYY format na ang maipapadala
+    join_date: formattedJoinDate
   };
 
   try {
-    const response = await fetch('http://localhost:3000/api/register', {
+    const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -210,7 +210,6 @@ async function proceedRegistration() {
         }
         if (countdown <= 0) {
           clearInterval(countdownInterval);
-          // I-reset ang buong form at ibalik sa simula nang hindi na nagre-refresh ng browser
           resetRegistrationForm();
         }
       }, 1000);
@@ -228,25 +227,21 @@ function resetRegistrationForm() {
   const form = document.getElementById('regForm');
   const statusResult = document.getElementById('statusResult');
 
-  // I-reset ang mga inputs ng form
   form.reset();
   form.style.display = 'block';
   statusResult.style.display = 'none';
 
-  // I-balik sa default ang oras pagka-reset (Morning: 00:00, Afternoon: 12:00)
   const pTimeInput = document.getElementById('pickupTime');
   const rTimeInput = document.getElementById('returnTime');
   if (pTimeInput) pTimeInput.value = '00:00';
   if (rTimeInput) rTimeInput.value = '12:00';
 
-  // I-clear ang photo base64 at preview image
   photoBase64 = '';
   const photoPreview = document.getElementById('photoPreview');
   if (photoPreview) {
     photoPreview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
   }
 
-  // Alisin ang selected state sa mga araw (days buttons)
   document.querySelectorAll('.day-btn').forEach(btn => {
     btn.classList.remove('selected');
   });
