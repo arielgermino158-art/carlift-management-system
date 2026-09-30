@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carlift Registration</title>
+
+  <!-- FAVICON -->
+  <link rel="icon" type="image/jpeg" href="images/MS Logo For My System.jpeg">
+  
+  <!-- Fonts & External CSS -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/index.css" />
+</head>
+<body>
+
+  <!-- Full Background Image Container -->
+  <div class="page-bg-banner"></div>
+
+  <!-- Main Wrapper -->
+  <div class="main-layout-container">
+    <div class="card">
+      <!-- CARD HEADER -->
+      <div class="card-header">
+        <div class="header-brand">
+          <img src="images/MS Logo For My System.jpeg" alt="MS Logo" class="header-logo" />
+          <div class="header-text">
+            <h2>CARLIFT REGISTRATION</h2>
+            <p>Quick & Hassle-Free Seat Booking</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <!-- Registration Form -->
+        <form id="regForm">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="name" required placeholder="Enter full name" />
+          </div>
+
+          <!-- 2x2 Photo Upload -->
+          <div class="form-group">
+            <label>Passenger Photo (2x2 / ID Picture) *</label>
+            <div class="photo-preview-container">
+              <input type="file" id="photoInput" accept="image/*" required style="padding: 8px;" />
+              <img id="photoPreview" class="photo-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>" alt="Preview" />
+            </div>
+          </div>
+
+          <!-- WhatsApp Number Only -->
+          <div class="form-group">
+            <label>WhatsApp Number *</label>
+            <div class="phone-input-group">
+              <span class="phone-prefix">+971</span>
+              <input 
+                type="text" 
+                id="whatsapp" 
+                required 
+                maxlength="9"
+                placeholder="501234567" 
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+              />
+            </div>
+          </div>
+
+          <!-- Location Fields -->
+          <div class="form-group">
+            <label>Pickup Location *</label>
+            <input type="text" id="pickup" required placeholder="Type Your Pickup Location" />
+          </div>
+
+          <div class="form-group">
+            <label>Drop-off Location *</label>
+            <input type="text" id="dropoff" required placeholder="Type Your Drop-Off Location" />
+          </div>
+
+          <!-- Selectable Days Buttons (Mon - Sun) -->
+          <div class="form-group">
+            <label>Working Days * <span style="font-weight: 400; color: #64748b; font-size: 11px;">(Tap days to select)</span></label>
+            <div class="days-grid" id="daysGrid">
+              <div class="day-btn" data-day="Mon">Mon</div>
+              <div class="day-btn" data-day="Tue">Tue</div>
+              <div class="day-btn" data-day="Wed">Wed</div>
+              <div class="day-btn" data-day="Thu">Thu</div>
+              <div class="day-btn" data-day="Fri">Fri</div>
+              <div class="day-btn" data-day="Sat">Sat</div>
+              <div class="day-btn" data-day="Sun">Sun</div>
+            </div>
+          </div>
+
+          <!-- Easy Pickup & Return Time Selectors -->
+          <div class="form-group">
+            <label>Working Time *</label>
+            <div class="time-grid">
+              <div>
+                <span style="font-size: 11px; color: #64748b;">Morning Time:</span>
+                <input type="time" id="pickupTime" required value="00:00" />
+              </div>
+              <div>
+                <span style="font-size: 11px; color: #64748b;">Afternoon Time:</span>
+                <input type="time" id="returnTime" required value="12:00" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Join Date Field (Added before Submit Button) -->
+          <div class="form-group">
+            <label>Join Date (Target Start Date) *</label>
+            <input type="date" id="joinDate" required />
+          </div>
+
+          <button type="button" onclick="openConfirmModal()" class="btn-submit">Submit Registration</button>
+        </form>
+
+        <!-- Confirmation Screen -->
+        <div id="statusResult" class="status-card" style="display: none;">
+          <div class="icon-success">✓</div>
+          <h3 style="font-size: 18px; color: #0f172a;">Registration Submitted!</h3>
+          <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Thank you for registering with our carlift service.</p>
+          
+          <div class="badge-pending">Status: PENDING PAYMENT</div>
+
+          <div class="info-box">
+            <p style="font-weight: 600; color: #0f172a; margin-bottom: 4px;">Payment Instructions:</p>
+            <p>• Monthly Fee: <b>AED 250</b></p>
+            <p>• Payment Method: <b>CASH ONLY</b></p>
+            <p style="margin-top: 6px;">Please submit payment to the carlift owner/driver to activate your account.</p>
+          </div>
+          <!-- Timer info text -->
+          <p id="resetTimerText" style="font-size: 12px; color: #64748b; margin-top: 12px; text-align: center; font-style: italic;">Returning to form in 3 seconds...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- YES / NO CONFIRMATION MODAL POPUP -->
+  <div class="modal-overlay" id="confirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="font-size: 40px; margin-bottom: 10px;">📋</div>
+      <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 8px;">Confirm Registration</h3>
+      <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Are you sure all the information provided is correct before submitting?</p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button type="button" onclick="closeConfirmModal()" style="padding: 10px 20px; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">No, Review First</button>
+        <button type="button" onclick="proceedRegistration()" style="padding: 10px 20px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Yes, Submit Now!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODERN FLOATING AI ROBOT ASSISTANT WIDGET -->
+  <div class="ai-floating-wrapper">
+    <button id="aiToggleBtn" class="ai-toggle-btn" onclick="toggleAIChat()">
+      🤖 <span class="ai-btn-text">AI Assistant</span>
+    </button>
+
+    <div id="aiChatWindow" class="ai-chat-window" style="display: none;">
+      <div class="ai-chat-header">
+        <span>🤖 MS Carlift AI Assistant</span>
+        <button class="ai-close-btn" onclick="toggleAIChat()">✕</button>
+      </div>
+      <div id="chat-box" class="chat-box-display">
+        <div class="msg-ai"><span><b>AI Robot:</b> Hello! May tanong ka ba sa carlift natin mula Sharjah papuntang Dubai? (AED 250 monthly fee). Paano kita matutulungan ngayon?</span></div>
+      </div>
+      <div class="chat-input-wrapper">
+        <input type="text" id="user-input" class="chat-input-field" placeholder="Mag-type ng tanong dito..." onkeypress="if(event.key === 'Enter') sendChatMessage()" />
+        <button onclick="sendChatMessage()" class="btn-chat-send">I-send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- External JavaScript Link -->
+  <script src="js/index.js"></script>
+</body>
+</html>

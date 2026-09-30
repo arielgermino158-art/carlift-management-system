@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carlift OS - Operating System</title>
+
+  <!-- FAVICON -->
+  <link rel="icon" type="image/jpeg" href="images/MS Logo For My System.jpeg">
+  
+  <!-- External Fonts & FontAwesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Backdrop overlay for mobile drawer -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <div>
+      <!-- BRAND LOGO WITH MS LOGO IMAGE -->
+      <div class="brand">
+        <img src="images/MS Logo For My System.jpeg" alt="MS Logo" class="admin-brand-logo">
+        <span>Carlift OS</span>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item active" onclick="switchTab('dashboard', event)">
+          <span><i class="fa-solid fa-gauge-high"></i> Dashboard</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('passengers', event)">
+          <span><i class="fa-solid fa-users"></i> Passengers List</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('payments', event)">
+          <span><i class="fa-solid fa-receipt"></i> Payment History</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('reports', event)">
+          <span><i class="fa-solid fa-chart-line"></i> Revenue Reports</span>
+        </li>
+
+        <!-- AWAITING APPROVAL SIDEBAR ITEM -->
+        <li class="nav-item" onclick="switchTab('awaiting', event)">
+          <span><i class="fa-solid fa-clock"></i> Awaiting Approval</span>
+          <span id="fbAwaitingBadge" class="fb-badge" style="display: none;">0</span>
+        </li>
+
+        <li class="nav-item" onclick="switchTab('settings', event)">
+          <span><i class="fa-solid fa-sliders"></i> Settings</span>
+        </li>
+      </ul>
+    </div>
+    
+    <!-- OWNER PROFILE & LOGOUT -->
+    <div class="owner-profile">
+      <div class="owner-info">
+        <div class="avatar">O</div>
+        <div>
+          <div style="font-weight: 800; font-size: 14px;">Carlift Owner</div>
+          <div style="font-size: 11px; color: #94a3b8;">Operator Panel</div>
+        </div>
+      </div>
+      <button class="btn-single-logout" onclick="openLogoutModal()" title="Logout of System">
+        <i class="fa-solid fa-power-off"></i>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <main class="main-wrapper">
+    <!-- Top Bar Header -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button class="mobile-toggle-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="top-bar-title-chip">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Owner Control Panel</span>
+        </div>
+      </div>
+      <div class="top-bar-status">
+        <div class="pulse-dot"></div>
+        <span class="status-text-full">Live Database Sync</span>
+        <span class="status-text-short">Live Sync</span>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <div class="content-container">
+
+      <!-- ================= SECTION 1: DASHBOARD ================= -->
+      <section id="view-dashboard" class="view-section active">
+
+        <!-- HERO SAAS BANNER -->
+        <div class="hero-action-card">
+          <div class="hero-left-info">
+            <div class="hero-tag-pills">
+              <span class="hero-pill-green"><i class="fa-solid fa-circle-check"></i> System Active</span>
+              <span class="hero-pill-glass"><i class="fa-solid fa-van-shuttle"></i> Sharjah ⇆ Dubai Routes</span>
+            </div>
+            <div class="hero-subtitle-text">
+              <span><i class="fa-solid fa-wallet"></i> Monthly Rate: <b>AED 250 / pax</b></span>
+              <span>•</span>
+              <span><i class="fa-solid fa-clock"></i> Auto-Receipts Enabled</span>
+            </div>
+          </div>
+          <div class="quick-btn-group">
+            <button class="btn-owner-primary" onclick="openPaymentModal()">
+              <i class="fa-solid fa-hand-holding-dollar"></i> Record Cash Payment
+            </button>
+            <button class="btn-owner-secondary" onclick="downloadCSVReport('passengers')">
+              <i class="fa-solid fa-file-excel"></i> Export Manifest
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div>
+              <div class="kpi-title">Total Cash Collected</div>
+              <div class="kpi-value" id="kpiRevenue" style="color: #10b981;">AED 0</div>
+              <div class="kpi-sub">Total revenue recorded</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-green"><i class="fa-solid fa-vault"></i></div>
+          </div>
+
+          <div class="kpi-card">
+            <div>
+              <div class="kpi-title">Pending Payment</div>
+              <div class="kpi-value" id="kpiPendingCount" style="color: #d97706;">0</div>
+              <div class="kpi-sub" style="color: #d97706;">Awaiting cash approval</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-amber"><i class="fa-solid fa-clock"></i></div>
+          </div>
+
+          <div class="kpi-card">
+            <div>
+              <div class="kpi-title">Active Passengers</div>
+              <div class="kpi-value" id="kpiActiveCount">0</div>
+              <div class="kpi-sub" id="kpiSeatsAvailableText">14 Seats Available</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-blue"><i class="fa-solid fa-user-check"></i></div>
+          </div>
+
+          <div class="kpi-card">
+            <div>
+              <div class="kpi-title">Occupancy Rate</div>
+              <div class="kpi-value" id="kpiOccupancyRate">0%</div>
+              <div class="kpi-sub">Based on van capacity</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-purple"><i class="fa-solid fa-bus"></i></div>
+          </div>
+        </div>
+
+        <!-- MODERN DOUGHNUT COLLECTION ANALYTICS -->
+        <div class="chart-container-box" style="background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid var(--border-color, #e2e8f0); box-shadow: 0 4px 16px rgba(0,0,0,0.04); margin-top: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <div style="font-size: 16px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Collection & Revenue Distribution
+              </div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Real-time breakdown of collected vs. pending monthly rates (AED 250)</div>
+            </div>
+            <div style="background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; color: #334155;">
+              <i class="fa-solid fa-calendar-days" style="color: #2563eb; margin-right: 4px;"></i> Current Quarter
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; align-items: center;">
+            <!-- Canvas Wrapper para iti Doughnut Chart -->
+            <div style="position: relative; width: 100%; height: 240px; display: flex; justify-content: center; align-items: center;">
+              <canvas id="revenueChart"></canvas>
+            </div>
+            
+            <!-- Quick Analytics Summary Side Cards -->
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-size: 11px; color: #64748b; font-weight: 600;">COLLECTED SHARE</div>
+                  <div style="font-size: 15px; font-weight: 800; color: #10b981;" id="donutCollectedText">AED 0</div>
+                </div>
+                <div style="width: 36px; height: 36px; background: #ecfdf5; color: #10b981; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                  <i class="fa-solid fa-arrow-trend-up"></i>
+                </div>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-size: 11px; color: #64748b; font-weight: 600;">PENDING SHARE</div>
+                  <div style="font-size: 15px; font-weight: 800; color: #d97706;" id="donutPendingText">AED 0</div>
+                </div>
+                <div style="width: 36px; height: 36px; background: #fffbeb; color: #d97706; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                  <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= SECTION 2: PASSENGERS ================= -->
+      <section id="view-passengers" class="view-section">
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title"><i class="fa-solid fa-users"></i> Passenger Directory</div>
+            <div class="search-box">
+              <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input type="text" id="passengerSearch" placeholder="Filter by name, route, or phone..." onkeyup="filterPassengers()">
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Passenger Name</th>
+                  <th>Photo</th>
+                  <th>WhatsApp Number</th>
+                  <th>Route</th>
+                  <th>Schedule</th>
+                  <th>Working Time</th>
+                  <th>Join Date</th>
+                  <th style="text-align: center;">Total Paid / Balance</th>
+                  <th>Validity / Countdown</th>
+                  <th>Status</th>
+                  <th style="text-align: center;">Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="allPassengersTableBody">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
+          <!-- PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="passengersPageInfo">Showing 0 of 0 passengers</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevPassengers" onclick="changePassengersPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextPassengers" onclick="changePassengersPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 3: PAYMENTS ================= -->
+      <section id="view-payments" class="view-section">
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title"><i class="fa-solid fa-receipt"></i> Payment Logs & Receipts</div>
+            <div class="search-box">
+              <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input type="text" id="paymentSearch" placeholder="Filter receipt or ID..." onkeyup="filterPayments()">
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Receipt No</th>
+                  <th>Passenger ID</th>
+                  <th>Passenger Name</th>
+                  <th>Photo</th>
+                  <th>Bill Month</th>
+                  <th>Amount Paid</th>
+                  <th>Collector</th>
+                  <th>Payment Date</th>
+                </tr>
+              </thead>
+              <tbody id="paymentsTableBody">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
+          <!-- PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="paymentsPageInfo">Showing 0 of 0 payment logs</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevPayments" onclick="changePaymentsPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextPayments" onclick="changePaymentsPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 4: REPORTS ================= -->
+      <section id="view-reports" class="view-section">
+        <div style="display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+          <button class="btn-owner-primary" onclick="downloadCSVReport('passengers')">
+            <i class="fa-solid fa-file-csv"></i> Export Passengers CSV
+          </button>
+          <button class="btn-owner-secondary" style="background:#0f172a; color:#fff;" onclick="downloadCSVReport('payments')">
+            <i class="fa-solid fa-file-csv"></i> Export Payments CSV
+          </button>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title"><i class="fa-solid fa-route"></i> Route Revenue Breakdown</div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Route Name</th>
+                  <th>Active Passengers</th>
+                  <th>Monthly Rate</th>
+                  <th>Total Route Revenue</th>
+                </tr>
+              </thead>
+              <tbody id="routeReportTableBody">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
+          <!-- PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="reportsPageInfo">Showing 0 of 0 routes</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevReports" onclick="changeReportsPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextReports" onclick="changeReportsPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 5: AWAITING APPROVAL ================= -->
+      <section id="view-awaiting" class="view-section">
+        <div class="table-card">
+          <div class="table-header" style="background: #fffbeb;">
+            <div class="table-title" style="color: #b45309;"><i class="fa-solid fa-clock"></i> Cash Payments Awaiting Approval</div>
+            <span class="badge badge-pending" id="pendingBadgeCount">0 Pending</span>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Passenger Name</th>
+                  <th>Photo</th>
+                  <th>WhatsApp Number</th>
+                  <th>Route</th>
+                  <th>Schedule</th>
+                  <th>Working Time</th>
+                  <th>Join Date</th>
+                  <th>Status</th>
+                  <th>Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="pendingTableBody">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="pendingPageInfo">Showing 0 of 0 pending requests</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevPending" onclick="changePendingPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextPending" onclick="changePendingPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= SECTION 6: SETTINGS ================= -->
+      <section id="view-settings" class="view-section">
+        <div class="settings-grid">
+          <div class="settings-card">
+            <h3><i class="fa-solid fa-bus" style="color: #2563eb;"></i> Fleet & Capacity Config</h3>
+            <div class="form-field">
+              <label>Maximum Van Seats Capacity</label>
+              <input type="number" id="settingCapacityInput" value="14" onchange="updateVanCapacitySetting(this.value)" />
+            </div>
+            <p style="font-size: 12px; color: #64748b;">Default is set to 14 Seats. Changing this value dynamically updates the Occupancy % across the system.</p>
+          </div>
+
+          <div class="settings-card">
+            <h3><i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Owner Credentials</h3>
+            <div class="form-field">
+              <label>Admin Username</label>
+              <input type="text" value="admin" disabled style="background: #f1f5f9;" />
+            </div>
+            <div class="form-field">
+              <label>Default Password</label>
+              <input type="text" value="admin123" disabled style="background: #f1f5f9;" />
+            </div>
+            <p style="font-size: 12px; color: #64748b;">Password resets can be handled via Recovery PIN (123456) on the login page.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- CASH PAYMENT RECORD MODAL -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-cash-register"></i> Record Cash Payment</h3>
+        <button class="modal-close" onclick="closePaymentModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Passenger ID *</label>
+          <input type="text" id="modalPassengerId" placeholder="e.g. P-0001" />
+        </div>
+        <div class="form-group">
+          <label>Amount Collected (AED) *</label>
+          <input type="number" id="modalAmount" value="250" />
+        </div>
+        <div class="form-group">
+          <label>Collected By *</label>
+          <input type="text" id="modalCollector" value="Owner" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closePaymentModal()">Cancel</button>
+        <button class="btn-action-approve" onclick="submitModalPayment()">Confirm & Activate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATE PAYMENT DATE & PARTIAL AMOUNT MODAL -->
+  <div class="modal-overlay" id="updatePaymentDateModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header" style="background: #2563eb;">
+        <h3><i class="fa-solid fa-cash-register"></i> Record Payment & Update Date</h3>
+        <button class="modal-close" onclick="closeUpdatePaymentDateModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">
+          Record payment for <b id="updateModalPassengerName" style="color: #0f172a;"></b> (Monthly Rate: AED 250)
+        </p>
+        
+        <!-- Amount Selection -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label>Amount Paid (AED) *</label>
+          <input type="text" id="modalPartialAmount" placeholder="Choose Payment" class="form-control" />
+          
+          <!-- Quick Amount Buttons -->
+          <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+            <button type="button" onclick="setModalAmount(50)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 50</button>
+            <button type="button" onclick="setModalAmount(100)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 100</button>
+            <button type="button" onclick="setModalAmount(150)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 150</button>
+            <button type="button" onclick="setModalAmount(200)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 200</button>
+            <button type="button" onclick="setModalAmount(250)" style="padding: 6px 12px; background: #e0f2fe; border: 1px solid #bae6fd; color: #0284c7; border-radius: 6px; font-weight: 700; cursor: pointer;">Full AED 250</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Payment Date *</label>
+          <input type="date" id="modalNewPaymentDate" />
+        </div>
+
+        <input type="hidden" id="modalUpdatePassengerId" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeUpdatePaymentDateModal()">Cancel</button>
+        <button class="btn-action-approve" style="background:#2563eb;" onclick="confirmUpdatePaymentDate()">Save Payment Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS PAYMENT RECEIVER / RECEIPT MODAL (Auto-Close 3s) -->
+  <div class="modal-overlay" id="successReceiptModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;">
+    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="font-size: 42px; color: #10b981; margin-bottom: 10px;"><i class="fa-solid fa-circle-check"></i></div>
+      <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 4px;">Payment Successful!</h3>
+      <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">Cash payment recorded and approved successfully by Owner.</p>
+      
+      <!-- Receipt Info Box -->
+      <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 12px; margin-bottom: 16px; text-align: left; font-size: 13px; color: #334155;">
+        <div><b>Passenger:</b> <span id="receiptPassengerName">-</span></div>
+        <div><b>Amount Paid:</b> <span id="receiptAmount" style="color: #10b981; font-weight: 700;">-</span></div>
+        <div><b>Receiver:</b> <span id="receiptCollector">Owner</span></div>
+      </div>
+
+      <div style="font-size: 12px; color: #94a3b8; font-weight: 600; margin-bottom: 16px;">Closing automatically in <span id="receiptCountdownNum" style="color: #2563eb;">3</span>s...</div>
+      <button type="button" onclick="closeSuccessReceiptModal()" style="width: 100%; padding: 10px 24px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">Done</button>
+    </div>
+  </div>
+
+  <!-- PASSENGER PHOTO PREVIEW MODAL -->
+  <div class="modal-overlay" id="imageModal">
+    <div class="modal-box" style="max-width: 420px; text-align: center;">
+      <div class="modal-header">
+        <h3 id="imageModalTitle"><i class="fa-solid fa-id-card"></i> Passenger Photo</h3>
+        <button class="modal-close" onclick="closeImageModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        <img id="imageModalPreview" src="" alt="Passenger Photo" style="width: 100%; max-height: 380px; object-fit: contain; border-radius: 14px; border: 1px solid var(--border-color); box-shadow: 0 4px 16px rgba(0,0,0,0.08);" />
+      </div>
+      <div class="modal-footer" style="justify-content: center;">
+        <button class="btn-action-approve" style="background: #0f172a;" onclick="closeImageModal()">Close Preview</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERIFY / APPROVE MODAL -->
+  <div id="verifyModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Approval </h3>
+        <button class="modal-close" onclick="closeVerifyModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p style="font-size: 14px; color: #475569;">Are you sure you want to approve <b id="verifyModalPassengerName" style="color: #0f172a;"></b>?</p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 10px;">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeVerifyModal()">Cancel</button>
+        <button class="btn-action-approve" style="background:#10b981;" onclick="confirmVerifyPayment()">Yes, Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE PASSENGER MODAL -->
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+      <div class="modal-header">
+        <h3 id="deleteModalTitle"><i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Delete Passenger</h3>
+        <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p id="deleteModalMessage" style="font-size: 14px; color: #475569;">Are you sure you want to delete <b id="deleteModalPassengerName" style="color: #0f172a;"></b> from the Passenger?</p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 10px;">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn-action-delete" style="padding: 10px 18px; border-radius: 8px;" onclick="confirmDeletePassenger()">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATE WORKING TIME MODAL -->
+  <div class="modal-overlay" id="updateWorkingTimeModal">
+    <div class="modal-box" style="max-width: 420px;">
+      <div class="modal-header" style="background: #2563eb;">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Update Working Time</h3>
+        <button class="modal-close" onclick="closeUpdateWorkingTimeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">
+          Update working shift for <b id="workingTimePassengerName" style="color: #0f172a;"></b>
+        </p>
+        
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Working Time *</label>
+          <div class="time-grid" style="display: flex; gap: 12px;">
+            <div style="flex: 1;">
+              <span style="font-size: 11px; color: #64748b;">Morning Time:</span>
+              <input type="time" id="modalPickupTime" class="form-control" required value="08:00" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;" />
+            </div>
+            <div style="flex: 1;">
+              <span style="font-size: 11px; color: #64748b;">Afternoon Time:</span>
+              <input type="time" id="modalReturnTime" class="form-control" required value="17:00" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;" />
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" id="modalWorkingTimePassengerId" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeUpdateWorkingTimeModal()">Cancel</button>
+        <button class="btn-action-approve" style="background:#2563eb;" onclick="confirmUpdateWorkingTime()">Save Working Time</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGOUT CONFIRMATION MODAL -->
+  <div class="modal-overlay" id="logoutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="font-size: 40px; margin-bottom: 10px;">🔒</div>
+      <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 8px;">Confirm Logout</h3>
+      <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Are you sure you want to end your owner session and logout?</p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button type="button" onclick="closeLogoutModal()" style="padding: 10px 20px; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">No, Stay</button>
+        <button type="button" onclick="confirmLogout()" style="padding: 10px 20px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Yes, Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- External JavaScript Logic -->
+  <script src="js/admin.js"></script>
+</body>
+</html>

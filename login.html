@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carlift OS - Admin Access Control</title>
+
+  <!-- FAVICON -->
+  <link rel="icon" type="image/jpeg" href="images/MS Logo For My System.jpeg">
+  
+  <!-- Fonts & External CSS -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/login.css" />
+</head>
+<body>
+  <!-- Full Background Image Container -->
+  <div class="page-bg-banner"></div>
+
+  <div class="login-card">
+    <!-- BRAND LOGO -->
+    <div class="brand-logo">
+      <img src="images/MS Logo For My System.jpeg" alt="MS Logo" class="login-logo-img">
+      <div class="brand-text-container">
+        <h2 class="brand-title">CARLIFT OS</h2>
+        <p class="brand-subtitle">Admin Access &amp; Control</p>
+      </div>
+    </div>
+    
+    <!-- ALERT BOX NA MAY COUNtdown TIMER TEXT -->
+    <div id="alertBox" class="alert-msg error" style="display: none;">
+      <span id="alertText">Invalid Credentials</span>
+      <p id="loginTimerText" style="font-size: 11px; margin-top: 4px; font-style: italic; opacity: 0.85;"></p>
+    </div>
+
+    <!-- 1. LOGIN FORM -->
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <!-- USERNAME -->
+      <div class="form-group">
+        <label for="username">Admin Username</label>
+        <div class="input-wrapper">
+          <input type="password" id="username" placeholder="Enter username" required autocomplete="username" />
+          <i class="fa-regular fa-eye toggle-icon" id="userEyeIcon" onclick="toggleVisibility('username', 'userEyeIcon')"></i>
+        </div>
+      </div>
+
+      <!-- PASSWORD -->
+      <div class="form-group">
+        <label for="password">Admin Password</label>
+        <div class="input-wrapper">
+          <input type="password" id="password" placeholder="Enter password" required autocomplete="current-password" />
+          <i class="fa-regular fa-eye toggle-icon" id="passEyeIcon" onclick="toggleVisibility('password', 'passEyeIcon')"></i>
+        </div>
+      </div>
+
+      <div class="form-actions-link">
+        <span class="forgot-link" onclick="switchMode('recovery')">Forgot Password / Use PIN?</span>
+      </div>
+
+      <button type="submit" class="btn-submit" id="btnSubmit">
+        <span id="btnText">Sign In to Dashboard</span>
+      </button>
+    </form>
+
+    <!-- 2. RECOVERY FORM (Hidden by default) -->
+    <form id="recoveryForm" class="hidden" onsubmit="handleRecovery(event)">
+      <div class="form-group">
+        <label for="recUsername">Admin Username</label>
+        <div class="input-wrapper">
+          <input type="password" id="recUsername" placeholder="Enter username" required />
+          <i class="fa-regular fa-eye toggle-icon" id="recUserEyeIcon" onclick="toggleVisibility('recUsername', 'recUserEyeIcon')"></i>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="recoveryPin">Recovery PIN</label>
+        <div class="input-wrapper">
+          <input type="password" id="recoveryPin" placeholder="Enter 6-digit PIN" maxlength="6" required />
+          <i class="fa-regular fa-eye toggle-icon" id="pinEyeIcon" onclick="toggleVisibility('recoveryPin', 'pinEyeIcon')"></i>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="newPassword">New Password</label>
+        <div class="input-wrapper">
+          <input type="password" id="newPassword" placeholder="Enter new password" required />
+          <i class="fa-regular fa-eye toggle-icon" id="newPassEyeIcon" onclick="toggleVisibility('newPassword', 'newPassEyeIcon')"></i>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="btnResetSubmit">
+        <span id="btnResetText">Reset Password & Login</span>
+      </button>
+
+      <button type="button" class="btn-submit btn-secondary" onclick="switchMode('login')">
+        Back to Login
+      </button>
+    </form>
+  </div>
+
+  <script>
+    let countdownInterval = null;
+
+    // Reusable Toggle Function para sa Username, Password, at PIN
+    function toggleVisibility(inputId, iconId) {
+      const inputField = document.getElementById(inputId);
+      const eyeIcon = document.getElementById(iconId);
+
+      if (inputField.type === 'password') {
+        inputField.type = 'text';
+        eyeIcon.classList.remove('fa-eye');
+        eyeIcon.classList.add('fa-eye-slash');
+      } else {
+        inputField.type = 'password';
+        eyeIcon.classList.remove('fa-eye-slash');
+        eyeIcon.classList.add('fa-eye');
+      }
+    }
+
+    // Switch View Modes (Login vs Recovery)
+    function switchMode(mode) {
+      const loginForm = document.getElementById('loginForm');
+      const recoveryForm = document.getElementById('recoveryForm');
+      const alertBox = document.getElementById('alertBox');
+
+      alertBox.style.display = 'none';
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      if (mode === 'recovery') {
+        loginForm.classList.add('hidden');
+        recoveryForm.classList.remove('hidden');
+      } else {
+        recoveryForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+      }
+    }
+
+    // Helper for displaying alerts with a 3-second live countdown timer & auto form reset
+    function showAlert(message, type = 'error', shouldResetForm = false) {
+      const alertBox = document.getElementById('alertBox');
+      const alertText = document.getElementById('alertText');
+      const timerText = document.getElementById('loginTimerText');
+
+      alertText.innerText = message;
+      alertBox.className = `alert-msg ${type}`;
+      alertBox.style.display = 'block';
+
+      // I-clear ang lumang timer kung meron man
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      let countdown = 3;
+      if (shouldResetForm) {
+        timerText.textContent = `Resetting form in ${countdown} seconds...`;
+      } else {
+        timerText.textContent = '';
+      }
+
+      countdownInterval = setInterval(() => {
+        countdown--;
+        if (shouldResetForm && timerText) {
+          timerText.textContent = `Resetting form in ${countdown} seconds...`;
+        }
+        
+        if (countdown <= 0) {
+          clearInterval(countdownInterval);
+          alertBox.style.display = 'none';
+
+          // Kung kailangan i-clear o i-reset ang form
+          if (shouldResetForm) {
+            const loginForm = document.getElementById('loginForm');
+            const recoveryForm = document.getElementById('recoveryForm');
+            if (loginForm && !loginForm.classList.contains('hidden')) loginForm.reset();
+            if (recoveryForm && !recoveryForm.classList.contains('hidden')) recoveryForm.reset();
+          }
+        }
+      }, 1000);
+    }
+
+    // Standard Login Handler
+    async function handleLogin(e) {
+      e.preventDefault();
+      
+      const usernameInput = document.getElementById('username');
+      const passwordInput = document.getElementById('password');
+      const btnSubmit = document.getElementById('btnSubmit');
+      const btnText = document.getElementById('btnText');
+
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+
+      document.getElementById('alertBox').style.display = 'none';
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      btnSubmit.disabled = true;
+      btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Signing in...';
+
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          localStorage.setItem('carlift_admin_token', data.token);
+          window.location.href = 'admin.html';
+        } else {
+          // Magpapakita ng error, may countdown, tapos kusa ring magrereturn/reset sa blank form
+          showAlert(data.message || "Invalid Admin Credentials", 'error', true);
+        }
+      } catch (err) {
+        showAlert("Server connection failed. Please check backend.", 'error', true);
+      } finally {
+        btnSubmit.disabled = false;
+        btnText.innerText = 'Sign In to Dashboard';
+      }
+    }
+
+    // Recovery & Reset Password Handler
+    async function handleRecovery(e) {
+      e.preventDefault();
+
+      const username = document.getElementById('recUsername').value.trim();
+      const recoveryPin = document.getElementById('recoveryPin').value.trim();
+      const newPassword = document.getElementById('newPassword').value;
+
+      const btnResetSubmit = document.getElementById('btnResetSubmit');
+      const btnResetText = document.getElementById('btnResetText');
+
+      document.getElementById('alertBox').style.display = 'none';
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      btnResetSubmit.disabled = true;
+      btnResetText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Resetting...';
+
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, pin: recoveryPin, newPassword })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          showAlert("Password reset successful! Logging in...", 'success', false);
+          if (data.token) {
+            localStorage.setItem('carlift_admin_token', data.token);
+          }
+          setTimeout(() => {
+            window.location.href = 'admin.html';
+          }, 1500);
+        } else {
+          showAlert(data.message || "Invalid Recovery PIN or Username", 'error', true);
+        }
+      } catch (err) {
+        showAlert("Server connection failed. Please check backend.", 'error', true);
+      } finally {
+        btnResetSubmit.disabled = false;
+        btnResetText.innerText = 'Reset Password & Login';
+      }
+    }
+  </script>
+</body>
+</html>
