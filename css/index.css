@@ -3,12 +3,14 @@
   margin: 0; 
   padding: 0; 
   font-family: 'Inter', sans-serif; 
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 🌟 Lock ang buong screen para walang page scrolling */
+/* 🌟 Lock ang buong screen para walang page scrolling sa labas */
 html, body {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   margin: 0;
   padding: 0;
@@ -29,6 +31,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background-image: url('../images/Carlift Registration 1.png'); 
   background-size: cover;
   background-position: center center;
@@ -42,7 +45,9 @@ body {
   z-index: 1;
   width: 100%;
   max-width: 480px;
+  height: 100%;
   max-height: 100vh;
+  max-height: 100dvh;
   padding: 10px;
   display: flex;
   justify-content: center;
@@ -53,7 +58,9 @@ body {
   background: rgba(255, 255, 255, 0.95); 
   backdrop-filter: blur(10px);
   width: 100%; 
+  height: 100%;
   max-height: calc(100vh - 20px);
+  max-height: calc(100dvh - 20px);
   border-radius: 16px; 
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); 
   display: flex;
@@ -66,7 +73,7 @@ body {
 .card-header { 
   background: #0f172a; 
   color: #ffffff; 
-  padding: 18px 20px; 
+  padding: 16px 20px; 
   border-bottom: 3px solid #2563eb;
   flex-shrink: 0;
 }
@@ -75,12 +82,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .header-logo {
-  width: 50px;
-  height: 50px;
+  width: 46px;
+  height: 46px;
   border-radius: 12px;
   object-fit: cover;
   flex-shrink: 0;
@@ -96,7 +103,7 @@ body {
 }
 
 .header-text h2 { 
-  font-size: 17px; 
+  font-size: 16px; 
   font-weight: 800; 
   letter-spacing: -0.5px; 
   margin: 0;
@@ -109,35 +116,38 @@ body {
   margin-top: 2px; 
 }
 
-/* 🌟 Dito lang magkakaroon ng scroll kung sakaling mahaba ang form, hindi sa buong page */
+/* 🌟 Dito lang magkakaroon ng scroll kung sakaling mahaba ang form */
 .card-body { 
-  padding: 18px 24px; 
+  padding: 16px 20px; 
   overflow-y: auto;
   flex: 1;
+  -webkit-overflow-scrolling: touch;
 }
 
 .form-group { 
-  margin-bottom: 12px; 
+  margin-bottom: 14px; 
 }
 
 .form-group label { 
   display: block; 
-  font-size: 12px; 
-  font-weight: 600; 
+  font-size: 11px; 
+  font-weight: 800; 
   color: #334155; 
-  margin-bottom: 4px; 
+  margin-bottom: 6px; 
+  text-transform: uppercase;
 }
 
 .form-group input, 
 .form-group select { 
   width: 100%; 
-  padding: 8px 12px; 
+  padding: 10px 14px; 
   border: 1px solid #cbd5e1; 
-  border-radius: 8px; 
-  font-size: 13px; 
+  border-radius: 10px; 
+  font-size: 16px; /* 16px para iwas auto-zoom sa mobile browsers */
   outline: none; 
-  transition: border-color 0.2s; 
+  transition: border-color 0.2s, box-shadow 0.2s; 
   background: white; 
+  font-weight: 600;
 }
 
 .form-group input:focus, 
@@ -151,16 +161,17 @@ body {
   display: flex; 
   align-items: center; 
   border: 1px solid #cbd5e1; 
-  border-radius: 8px; 
+  border-radius: 10px; 
   overflow: hidden; 
+  background: white;
 }
 
 .phone-prefix { 
   background: #f1f5f9; 
   color: #334155; 
-  font-weight: 600; 
-  font-size: 13px; 
-  padding: 8px 10px; 
+  font-weight: 700; 
+  font-size: 14px; 
+  padding: 10px 12px; 
   border-right: 1px solid #cbd5e1; 
   user-select: none; 
 }
@@ -185,16 +196,19 @@ body {
 .day-btn { 
   flex: 1; 
   text-align: center; 
-  padding: 8px 0; 
+  padding: 10px 0; 
   border: 1px solid #cbd5e1; 
   background: #f8fafc; 
   border-radius: 8px; 
   font-size: 11px; 
-  font-weight: 600; 
+  font-weight: 700; 
   color: #475569; 
   cursor: pointer; 
   transition: all 0.2s; 
   user-select: none; 
+  min-height: 40px;
+  display: grid;
+  place-items: center;
 }
 
 .day-btn:hover { 
@@ -205,7 +219,7 @@ body {
   background: #2563eb; 
   color: #ffffff; 
   border-color: #2563eb; 
-  box-shadow: 0 2px 4px rgba(37,99,235,0.2); 
+  box-shadow: 0 2px 6px rgba(37,99,235,0.3); 
 }
 
 /* Time Selector Grid */
@@ -223,7 +237,7 @@ body {
   display: flex; 
   align-items: center; 
   gap: 12px; 
-  margin-top: 4px; 
+  margin-top: 6px; 
 }
 
 .photo-preview { 
@@ -240,17 +254,23 @@ body {
   background: #2563eb; 
   color: #ffffff; 
   font-size: 14px; 
-  font-weight: 600; 
-  padding: 10px; 
+  font-weight: 700; 
+  padding: 12px; 
   border: none; 
-  border-radius: 8px; 
+  border-radius: 10px; 
   cursor: pointer; 
-  transition: background 0.2s; 
-  margin-top: 4px; 
+  transition: background 0.2s, transform 0.1s; 
+  margin-top: 8px; 
+  min-height: 46px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .btn-submit:hover { 
   background: #1d4ed8; 
+}
+
+.btn-submit:active {
+  transform: scale(0.98);
 }
 
 /* Confirmation Screen */
@@ -261,8 +281,8 @@ body {
 }
 
 .icon-success { 
-  width: 50px; 
-  height: 50px; 
+  width: 54px; 
+  height: 54px; 
   background: #dcfce7; 
   color: #16a34a; 
   border-radius: 50%; 
@@ -288,19 +308,19 @@ body {
 .info-box { 
   background: #f8fafc; 
   border: 1px solid #e2e8f0; 
-  border-radius: 8px; 
-  padding: 12px; 
+  border-radius: 10px; 
+  padding: 14px; 
   text-align: left; 
   font-size: 12px; 
   color: #475569; 
-  margin-top: 12px; 
+  margin-top: 14px; 
 }
 
 /* MODERN FLOATING AI ROBOT WIDGET STYLES */
 .ai-floating-wrapper {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 16px;
+  right: 16px;
   z-index: 9999;
   font-family: 'Inter', sans-serif;
 }
@@ -309,9 +329,9 @@ body {
   background: #2563eb;
   color: #ffffff;
   border: none;
-  padding: 10px 18px;
+  padding: 10px 16px;
   border-radius: 30px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13px;
   cursor: pointer;
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
@@ -319,6 +339,7 @@ body {
   align-items: center;
   gap: 8px;
   transition: all 0.3s ease;
+  min-height: 44px;
 }
 
 .ai-toggle-btn:hover {
@@ -329,13 +350,13 @@ body {
 
 .ai-chat-window {
   position: absolute;
-  bottom: 55px;
+  bottom: 54px;
   right: 0;
-  width: 340px;
-  max-width: calc(100vw - 30px);
+  width: 320px;
+  max-width: calc(100vw - 32px);
   background: #ffffff;
   border-radius: 14px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
   border: 1px solid #cbd5e1;
   overflow: hidden;
   display: flex;
@@ -351,20 +372,24 @@ body {
 .ai-chat-header {
   background: #0f172a;
   color: #ffffff;
-  padding: 10px 14px;
+  padding: 12px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .ai-close-btn {
   background: transparent;
   border: none;
   color: #94a3b8;
-  font-size: 15px;
+  font-size: 18px;
   cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
   transition: color 0.2s;
 }
 
@@ -373,7 +398,7 @@ body {
 }
 
 .chat-box-display {
-  height: 200px;
+  height: 180px;
   overflow-y: auto;
   background: #f8fafc;
   padding: 10px;
@@ -381,6 +406,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .chat-input-wrapper {
@@ -393,10 +419,10 @@ body {
 
 .chat-input-field {
   flex: 1;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 16px; /* Iwas auto-zoom sa mobile */
   outline: none;
 }
 
@@ -406,15 +432,16 @@ body {
 }
 
 .btn-chat-send {
-  padding: 6px 12px;
+  padding: 8px 14px;
   background: #0f172a;
   color: #ffffff;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12px;
   transition: background 0.2s;
+  min-height: 38px;
 }
 
 .btn-chat-send:hover {
@@ -446,4 +473,26 @@ body {
   border-radius: 8px 8px 8px 0px;
   display: inline-block;
   max-width: 85%;
+}
+
+/* ================= EXTRA MOBILE RESPONSIVE TWEAKS ================= */
+@media (max-width: 480px) {
+  .main-layout-container {
+    padding: 6px;
+  }
+  
+  .card {
+    max-height: calc(100vh - 12px);
+    max-height: calc(100dvh - 12px);
+    border-radius: 12px;
+  }
+
+  .card-body {
+    padding: 12px 14px;
+  }
+
+  .day-btn {
+    padding: 8px 0;
+    font-size: 10px;
+  }
 }
