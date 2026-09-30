@@ -27,7 +27,7 @@
       </div>
     </div>
     
-    <!-- ALERT BOX NA MAY COUNtdown TIMER TEXT -->
+    <!-- ALERT BOX NA MAY COUNTDOWN TIMER TEXT -->
     <div id="alertBox" class="alert-msg error" style="display: none;">
       <span id="alertText">Invalid Credentials</span>
       <p id="loginTimerText" style="font-size: 11px; margin-top: 4px; font-style: italic; opacity: 0.85;"></p>
@@ -145,7 +145,6 @@
       alertBox.className = `alert-msg ${type}`;
       alertBox.style.display = 'block';
 
-      // I-clear ang lumang timer kung meron man
       if (countdownInterval) clearInterval(countdownInterval);
 
       let countdown = 3;
@@ -165,7 +164,6 @@
           clearInterval(countdownInterval);
           alertBox.style.display = 'none';
 
-          // Kung kailangan i-clear o i-reset ang form
           if (shouldResetForm) {
             const loginForm = document.getElementById('loginForm');
             const recoveryForm = document.getElementById('recoveryForm');
@@ -195,7 +193,7 @@
       btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Signing in...';
 
       try {
-        const res = await fetch('http://localhost:3000/api/admin/login', {
+        const res = await fetch('/api/admin/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -207,7 +205,6 @@
           localStorage.setItem('carlift_admin_token', data.token);
           window.location.href = 'admin.html';
         } else {
-          // Magpapakita ng error, may countdown, tapos kusa ring magrereturn/reset sa blank form
           showAlert(data.message || "Invalid Admin Credentials", 'error', true);
         }
       } catch (err) {
@@ -236,7 +233,7 @@
       btnResetText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Resetting...';
 
       try {
-        const res = await fetch('http://localhost:3000/api/admin/reset-password', {
+        const res = await fetch('/api/admin/reset-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, pin: recoveryPin, newPassword })
