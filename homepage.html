@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Carlift Homepage</title>
+    <link rel="icon" type="image/jpeg" href="images/ms-logo.jpg">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        cardBg: '#131d31',
+                        accentBlue: '#3b82f6',
+                        accentCyan: '#06b6d4',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; width: 100%; }
+        .glass-panel {
+            background: rgba(11, 15, 25, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hero-bg {
+            background-image: linear-gradient(to bottom, rgba(11,15,25,0.7), rgba(11,15,25,0.95)), url('images/bus-bg.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        html {
+            scroll-padding-top: 5rem;
+        }
+
+        /* --- ULTRA-RESPONSIVE SCROLL ANIMATION CLASSES --- */
+        .reveal-fade {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .reveal-slide-left {
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .reveal-slide-right {
+            opacity: 0;
+            transform: translateX(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .reveal-zoom {
+            opacity: 0;
+            transform: scale(0.97);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .active-reveal {
+            opacity: 1;
+            transform: translate(0, 0) scale(1);
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- Header / Navbar -->
+    <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <img src="images/ms-logo.jpg" alt="MS Logo" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-500/20 shrink-0">
+                <div class="flex flex-col">
+                    <span class="text-sm sm:text-base lg:text-lg font-bold tracking-wider text-white leading-tight">SAJJAD <span class="text-blue-500">KHAN</span></span>
+                    <span class="text-[9px] sm:text-[10px] text-slate-400 tracking-tight"></span>
+                </div>
+            </div>
+
+            <!-- Desktop Navigation -->
+            <nav class="hidden lg:flex items-center space-x-6 text-sm font-medium text-slate-300">
+                <a href="#features" class="nav-link hover:text-blue-400 transition py-1 relative">Features</a>
+                <a href="#routes" class="nav-link hover:text-blue-400 transition py-1 relative">Routes</a>
+                <a href="#fleet" class="nav-link hover:text-blue-400 transition py-1 relative">Fleet</a>
+                <a href="#safety" class="nav-link hover:text-blue-400 transition py-1 relative">Safety</a>
+                <a href="#testimonials" class="nav-link hover:text-blue-400 transition py-1 relative">Reviews</a>
+                <a href="#faq" class="nav-link hover:text-blue-400 transition py-1 relative">FAQ</a>
+                <a href="#contact" class="nav-link hover:text-blue-400 transition py-1 relative">Contact</a>
+            </nav>
+
+            <!-- Action Buttons (Login & Register side by side) -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="openAdminModal()" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition cursor-pointer">Login</button>
+                <a href="index.html" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-lg shadow-blue-600/35">Register</a>
+                
+                <!-- Mobile Menu Button -->
+                <button id="mobileMenuBtn" class="lg:hidden p-2 text-slate-300 hover:text-white focus:outline-none cursor-pointer">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Dropdown Menu -->
+        <div id="mobileMenu" class="absolute top-20 left-0 right-0 glass-panel border-b border-slate-800 p-5 flex flex-col space-y-3 shadow-2xl hidden lg:hidden transition-all duration-300">
+            <a href="#features" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 border-b border-slate-800/60 text-sm">Features</a>
+            <a href="#routes" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 border-b border-slate-800/60 text-sm">Routes</a>
+            <a href="#fleet" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 border-b border-slate-800/60 text-sm">Fleet</a>
+            <a href="#safety" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 border-b border-slate-800/60 text-sm">Safety</a>
+            <a href="#testimonials" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 border-b border-slate-800/60 text-sm">Reviews</a>
+            <a href="#faq" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 border-b border-slate-800/60 text-sm">FAQ</a>
+            <a href="#contact" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 text-sm">Contact</a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="pt-28 pb-12 sm:pt-36 sm:pb-20 md:pt-40 md:pb-28 relative overflow-hidden hero-bg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                
+                <div class="lg:col-span-7 space-y-5 sm:space-y-6 lg:space-y-8 text-center lg:text-left reveal-slide-left">
+                    <div class="inline-flex items-center space-x-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] sm:text-xs font-semibold uppercase tracking-wider backdrop-blur-md">
+                        <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0"></span>
+                        <span class="truncate">Safe, Reliable & On-Time Daily Carlift Services</span>
+                    </div>
+
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15]">
+                        Master Your <span class="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Carlift Operations</span> with Precision.
+                    </h1>
+
+                    <p class="text-sm sm:text-base lg:text-lg text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                        A streamlined management platform built to easily track passengers, verify identities, and monitor payments effortlessly for a smooth daily operation.
+                    </p>
+                </div>
+
+                <div class="lg:col-span-5 reveal-slide-right w-full">
+                    <div class="glass-panel rounded-2xl p-4 sm:p-6 shadow-2xl border border-slate-700/60 relative w-full">
+                        <div class="flex items-center justify-between pb-3 sm:pb-4 mb-3 sm:mb-4 border-b border-slate-800">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                                <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                                <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <span class="text-[10px] sm:text-xs text-slate-400 font-mono">ms sajjad khan system: active</span>
+                        </div>
+
+                        <div class="space-y-3 sm:space-y-4">
+                            <div class="bg-slate-900/80 p-3 sm:p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+                                <div>
+                                    <p class="text-[11px] sm:text-xs text-slate-400">Active Carlifts / Buses</p>
+                                    <p class="text-lg sm:text-xl font-bold text-white">24 / 28</p>
+                                </div>
+                                <div class="p-2.5 sm:p-3 bg-blue-500/10 rounded-lg text-blue-400 shrink-0">
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-900/80 p-3 sm:p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+                                <div>
+                                    <p class="text-[11px] sm:text-xs text-slate-400">Today's Bookings</p>
+                                    <p class="text-lg sm:text-xl font-bold text-white">1,429</p>
+                                </div>
+                                <div class="p-2.5 sm:p-3 bg-cyan-500/10 rounded-lg text-cyan-400 shrink-0">
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-gradient-to-r from-blue-900/40 to-cyan-900/40 rounded-xl border border-blue-500/30 flex items-center justify-between text-[11px] sm:text-xs text-blue-300">
+                                <span>Fleet Optimization Engine</span>
+                                <span class="font-bold shrink-0">99.8% Efficiency</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-14 sm:py-20 bg-darkBg border-t border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-10 sm:mb-16 space-y-3 reveal-fade">
+                <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Built for Peak Performance</h2>
+                <p class="text-slate-400 text-xs sm:text-sm lg:text-base">Everything you need to centralize your carlift operations—track passengers, verify identities, and manage payments effortlessly under one system.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 reveal-zoom">
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl space-y-4 transform hover:-translate-y-1.5 hover:border-blue-500/60 transition-all duration-300 shadow-xl">
+                    <div class="w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-base sm:text-lg lg:text-xl font-semibold text-white">Quick Registration Access</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">Instantly check passenger shift timings and verify identities so you can effortlessly manage your daily trips.</p>
+                </div>
+
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl space-y-4 transform hover:-translate-y-1.5 hover:border-blue-500/60 transition-all duration-300 shadow-xl">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-600/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    </div>
+                    <h3 class="text-base sm:text-lg lg:text-xl font-semibold text-white">Advanced Analytics</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">Easily monitor your total number of passengers, along with your daily income and expenses, giving you a clear view of your business performance.</p>
+                </div>
+
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl space-y-4 transform hover:-translate-y-1.5 hover:border-blue-500/60 transition-all duration-300 shadow-xl">
+                    <div class="w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <h3 class="text-base sm:text-lg lg:text-xl font-semibold text-white">Secure Access Control</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">Role-based permission systems ensuring data integrity for administrators and operators.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Daily Routes & Timings Section -->
+    <section id="routes" class="py-14 sm:py-20 bg-slate-950/50 border-t border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-10 sm:mb-12 space-y-3 reveal-fade">
+                <span class="text-xs font-semibold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">Daily Schedules</span>
+                <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Routes & Timing</h2>
+                <p class="text-slate-400 text-xs sm:text-sm lg:text-base">Reliable morning and evening trips designed around working hours and professional schedules.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 reveal-zoom">
+                <div class="glass-panel p-5 sm:p-8 rounded-2xl space-y-5 sm:space-y-6 border border-slate-700/60">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-2">
+                        <div>
+                            <span class="text-[11px] sm:text-xs text-blue-400 font-mono">ROUTE 01</span>
+                            <h3 class="text-base sm:text-lg font-bold text-white">Sharjah to Muweilah</h3>
+                        </div>
+                        <span class="self-start sm:self-auto px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[11px] sm:text-xs font-semibold rounded-full border border-emerald-500/20 shrink-0">Daily Active</span>
+                    </div>
+                    <div class="space-y-3 text-xs sm:text-sm text-slate-300">
+                        <div class="flex justify-between items-center py-2 border-b border-slate-800/60 gap-2">
+                            <span class="text-slate-400 shrink-0">Morning Pick-up:</span>
+                            <span class="font-semibold text-white text-right">07:50 AM – 08:30 AM</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-slate-800/60 gap-2">
+                            <span class="text-slate-400 shrink-0">Evening Return:</span>
+                            <span class="font-semibold text-white text-right">06:20 PM – 07:30 PM</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 gap-2">
+                            <span class="text-slate-400 shrink-0">Package Type:</span>
+                            <span class="text-blue-400 font-medium text-right">Monthly / Weekly Subscription</span>
+                        </div>
+                    </div>
+                    <a href="index.html" class="block w-full py-3 bg-slate-800 hover:bg-blue-600 text-center text-xs sm:text-sm font-semibold text-white rounded-xl transition">Reserve Route Seat</a>
+                </div>
+
+                <div class="glass-panel p-5 sm:p-8 rounded-2xl space-y-5 sm:space-y-6 border border-slate-700/60">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-2">
+                        <div>
+                            <span class="text-[11px] sm:text-xs text-blue-400 font-mono">ROUTE 02</span>
+                            <h3 class="text-base sm:text-lg font-bold text-white">Sharjah to Dubai</h3>
+                        </div>
+                        <span class="self-start sm:self-auto px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[11px] sm:text-xs font-semibold rounded-full border border-emerald-500/20 shrink-0">Daily Active</span>
+                    </div>
+                    <div class="space-y-3 text-xs sm:text-sm text-slate-300">
+                        <div class="flex justify-between items-center py-2 border-b border-slate-800/60 gap-2">
+                            <span class="text-slate-400 shrink-0">Morning Pick-up:</span>
+                            <span class="font-semibold text-white text-right">06:30 AM – 09:30 AM</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-slate-800/60 gap-2">
+                            <span class="text-slate-400 shrink-0">Evening Return:</span>
+                            <span class="font-semibold text-white text-right">06:00 PM – 07:30 PM</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 gap-2">
+                            <span class="text-slate-400 shrink-0">Package Type:</span>
+                            <span class="text-blue-400 font-medium text-right">Monthly / Weekly Subscription</span>
+                        </div>
+                    </div>
+                    <a href="index.html" class="block w-full py-3 bg-slate-800 hover:bg-blue-600 text-center text-xs sm:text-sm font-semibold text-white rounded-xl transition">Reserve Route Seat</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Fleet Showcase Section -->
+    <section id="fleet" class="py-14 sm:py-20 bg-darkBg border-t border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-10 sm:mb-12 space-y-3 reveal-fade">
+                <span class="text-xs font-semibold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">Our Vehicles</span>
+                <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Spotless & Climate-Controlled Fleet</h2>
+                <p class="text-slate-400 text-xs sm:text-sm lg:text-base">Enjoy your daily ride in our modern executive vans and sedans, professionally sanitized for your absolute comfort and safety.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 reveal-zoom">
+                <div class="glass-panel p-5 sm:p-6 rounded-2xl space-y-4 border border-slate-800">
+                    <div class="h-44 sm:h-40 rounded-xl overflow-hidden bg-slate-900 border border-slate-800">
+                        <img src="images/suv.jpg" alt="Toyota Hiace Executive" class="w-full h-full object-cover transform hover:scale-105 transition duration-500">
+                    </div>
+                    <h3 class="text-base sm:text-lg font-bold text-white">Toyota Hiace Executive</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Fast point-to-point daily dispatching for individual professionals.</p>
+                </div>
+
+                <div class="glass-panel p-5 sm:p-6 rounded-2xl space-y-4 border border-slate-800">
+                    <div class="h-44 sm:h-40 rounded-xl overflow-hidden bg-slate-900 border border-slate-800">
+                        <img src="images/sedan.jpg" alt="Premium Family SUVs" class="w-full h-full object-cover transform hover:scale-105 transition duration-500">
+                    </div>
+                    <h3 class="text-base sm:text-lg font-bold text-white">Premium Family SUVs</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Ideal for smaller groups looking for privacy, leather seats, and premium comfort.</p>
+                </div>
+
+                <div class="glass-panel p-5 sm:p-6 rounded-2xl space-y-4 border border-slate-800">
+                    <div class="h-44 sm:h-40 rounded-xl overflow-hidden bg-slate-900 border border-slate-800">
+                        <img src="images/hiace-van.jpg" alt="Comfort Sedans" class="w-full h-full object-cover transform hover:scale-105 transition duration-500">
+                    </div>
+                    <h3 class="text-base sm:text-lg font-bold text-white">Comfort Sedans</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Spacious seating arrangement with high headroom and powerful dual air conditioning.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Safety & Compliance Section -->
+    <section id="safety" class="py-14 sm:py-20 bg-slate-950/50 border-t border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                <div class="lg:col-span-6 space-y-5 sm:space-y-6 reveal-slide-left">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Peace of Mind</span>
+                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Your Ultimate Ride, On Time</h2>
+                    <p class="text-slate-300 text-xs sm:text-sm lg:text-base leading-relaxed">
+                        Travel with total confidence. We operate in full compliance with local transport regulations and enforce rigorous background screening for all our drivers to ensure a secure environment.
+                    </p>
+                    <ul class="space-y-3 text-xs sm:text-sm text-slate-300">
+                        <li class="flex items-start space-x-3">
+                            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">✓</span>
+                            <span>Licensed & Certified Drivers</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">✓</span>
+                            <span>Hassle-Free & On-Demand</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">✓</span>
+                            <span>Direct Driver Coordination</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="lg:col-span-6 reveal-slide-right w-full">
+                    <div class="glass-panel p-6 sm:p-8 rounded-2xl border border-slate-700/60 space-y-5 sm:space-y-6">
+                        <h3 class="text-base sm:text-lg font-bold text-white">Company Compliance Standards</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">Fully compliant with official transportation guidelines to ensure secure passenger commuting across states.</p>
+                        <div class="p-3 sm:p-4 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
+                            <span class="text-xs sm:text-sm font-semibold text-white">Verified Drivers Cover</span>
+                            <span class="text-emerald-400 text-[11px] sm:text-xs font-bold shrink-0">100% Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="py-14 sm:py-20 bg-darkBg border-t border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-10 sm:mb-12 space-y-3 reveal-fade">
+                <span class="text-xs font-semibold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">Reviews</span>
+                <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Trusted by Daily Commuters</h2>
+                <p class="text-slate-400 text-xs sm:text-sm lg:text-base">See what our regular passengers have to say about our punctuality and service quality.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 reveal-zoom">
+                <div class="glass-panel p-5 sm:p-8 rounded-2xl space-y-4 border border-slate-800">
+                    <p class="text-slate-300 text-xs sm:text-sm italic leading-relaxed">"Super bait ng driver at laging on-time sa pick-up point ko sa Sharjah. Hindi na ako nahu-huli sa trabaho ko sa Dubai. Sobrang laking tulong!"</p>
+                    <div class="flex items-center space-x-3 pt-2">
+                        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600/20 text-blue-400 font-bold flex items-center justify-center text-xs sm:text-sm shrink-0">JR</div>
+                        <div>
+                            <p class="text-xs sm:text-sm font-semibold text-white">Jayson R.</p>
+                            <p class="text-[11px] sm:text-xs text-slate-400">Regular Passenger (Sharjah-Dubai)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 sm:p-8 rounded-2xl space-y-4 border border-slate-800">
+                    <p class="text-slate-300 text-xs sm:text-sm italic leading-relaxed">"Clean ang van at malamig ang aircon. Very organized din ang booking system nila kaya walang hassle sa bayaran monthly."</p>
+                    <div class="flex items-center space-x-3 pt-2">
+                        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-cyan-600/20 text-cyan-400 font-bold flex items-center justify-center text-xs sm:text-sm shrink-0">MS</div>
+                        <div>
+                            <p class="text-xs sm:text-sm font-semibold text-white">Maria S.</p>
+                            <p class="text-[11px] sm:text-xs text-slate-400">Regular Passenger</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="py-14 sm:py-20 bg-slate-950/50 border-t border-slate-800/80">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-10 sm:mb-12 space-y-3 reveal-fade">
+                <span class="text-xs font-semibold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">FAQ</span>
+                <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Frequently Asked Questions</h2>
+                <p class="text-slate-400 text-xs sm:text-sm">Got questions about our carlift? Find quick answers right here.</p>
+            </div>
+
+            <div class="space-y-4 reveal-zoom">
+                <div class="glass-panel p-4 sm:p-5 rounded-xl border border-slate-800">
+                    <h3 class="text-sm sm:text-base font-semibold text-white mb-2">What if I arrive late at the pick-up point?</h3>
+                    <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">Passengers are advised to arrive 5 minutes before the scheduled time. Due to other passengers' schedules, the driver only has a limited waiting time.</p>
+                </div>
+
+                <div class="glass-panel p-4 sm:p-5 rounded-xl border border-slate-800">
+                    <h3 class="text-sm sm:text-base font-semibold text-white mb-2">Where are the exact pick-up and drop-off locations?</h3>
+                    <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">Pick-up is at designated meeting points along the route, and drop-off depends on your agreed schedule and subscription plan.</p>
+                </div>
+
+                <div class="glass-panel p-4 sm:p-5 rounded-xl border border-slate-800">
+                    <h3 class="text-sm sm:text-base font-semibold text-white mb-2">What are the accepted payment methods?</h3>
+                    <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">We accept bank transfers, cash payments, or monthly online corporate billing.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-14 sm:py-20 bg-darkBg border-t border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5 sm:space-y-6 reveal-fade">
+            <span class="text-xs font-semibold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">Get in Touch</span>
+            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Ready to Commute With Us?</h2>
+            <p class="text-slate-400 text-xs sm:text-sm lg:text-base max-w-xl mx-auto leading-relaxed">Kontakin kami agad sa WhatsApp o i-register ang iyong detalye para ma-secure ang iyong upuan sa susunod na biyahe.</p>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 pt-2 w-full">
+                <a href="https://wa.me/" target="_blank" class="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition shadow-xl shadow-emerald-600/30 text-center text-sm sm:text-base">
+                    Chat via WhatsApp
+                </a>
+                <a href="index.html" class="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition shadow-xl shadow-blue-600/40 text-center text-sm sm:text-base">
+                    Register Now
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-6 sm:py-8 bg-slate-950 border-t border-slate-900 text-center text-[11px] sm:text-xs text-slate-500">
+        <p>&copy; 2026 Carlift Management System. All rights reserved.</p>
+    </footer>
+
+    <!-- ADMIN VERIFICATION MODAL -->
+    <div id="adminModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 hidden">
+        <div class="glass-panel w-full max-w-md p-5 sm:p-8 rounded-2xl border border-slate-700 shadow-2xl relative transform transition-all">
+            <div class="flex items-center space-x-3 mb-5 sm:mb-6">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-sm sm:text-base lg:text-lg font-bold text-white">Admin Portal Access</h3>
+                    <p class="text-[11px] sm:text-xs text-slate-400">Restricted only for authorized company administrators</p>
+                </div>
+            </div>
+
+            <form onsubmit="verifyAdmin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-[11px] sm:text-xs font-medium text-slate-300 mb-1">PUT YOUR COMPANY NAME</label>
+                    <input type="text" id="companyInput" required placeholder="" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 transition">
+                </div>
+
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
+                    <button type="button" onclick="closeAdminModal()" class="w-full sm:w-1/2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-semibold rounded-xl transition cursor-pointer">Cancel</button>
+                    
+                    <button type="submit" id="submitBtn" class="w-full sm:w-1/2 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold rounded-xl transition shadow-lg shadow-blue-600/30 cursor-pointer flex items-center justify-center space-x-2">
+                        <span id="btnText">Continue</span>
+                        <svg id="btnSpinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SUCCESS VERIFICATION CENTERED MODAL -->
+    <div id="toast" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-300 scale-95">
+        <div class="glass-panel w-full max-w-sm p-6 sm:p-8 rounded-2xl border border-emerald-500/40 shadow-2xl text-center space-y-4">
+            <div class="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 animate-bounce">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-lg sm:text-xl font-bold text-white">Verification Successful!</h3>
+                <p class="text-xs sm:text-sm text-slate-300">Redirecting to login portal...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERACTIVITY & ADMIN VERIFICATION SCRIPT -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Scroll Reveal Animation Observer
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active-reveal');
+                    }
+                });
+            }, observerOptions);
+
+            const revealElements = document.querySelectorAll('.reveal-fade, .reveal-slide-left, .reveal-slide-right, .reveal-zoom');
+            revealElements.forEach(el => observer.observe(el));
+
+            // --- MOBILE MENU TOGGLE LOGIC ---
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileLinks = document.querySelectorAll('.mobile-link');
+
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    mobileMenu.classList.toggle('hidden');
+                });
+
+                // Isara ang menu kapag pinindot ang alinman sa mga links
+                mobileLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        mobileMenu.classList.add('hidden');
+                    });
+                });
+
+                // Isara ang menu kapag pinindot sa labas nito
+                document.addEventListener('click', function(e) {
+                    if (!mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            }
+        });
+
+        // Admin Modal Controls & Verification Logic
+        function openAdminModal() {
+            document.getElementById('adminModal').classList.remove('hidden');
+            document.getElementById('companyInput').focus();
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.add('hidden');
+            document.getElementById('companyInput').value = '';
+        }
+
+        function verifyAdmin(event) {
+            event.preventDefault();
+            const inputVal = document.getElementById('companyInput').value.trim().toLowerCase();
+            
+            const validNames = ["ms sajjad khan", "ms carlift", "sajjad khan", "sajjad"];
+
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+
+            if (validNames.some(name => inputVal.includes(name))) {
+                document.getElementById('adminModal').classList.add('hidden');
+
+                btnText.textContent = "Verifying...";
+                btnSpinner.classList.remove('hidden');
+
+                setTimeout(() => {
+                    const toast = document.getElementById('toast');
+                    toast.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
+                    toast.classList.add('opacity-100', 'pointer-events-auto', 'scale-100');
+                }, 300);
+
+                setTimeout(() => {
+                    window.location.href = "login.html"; 
+                }, 1800);
+            } else {
+                alert("Incorrect company name. Please enter the authorized company name to proceed.");
+                document.getElementById('companyInput').focus();
+            }
+        }
+    </script>
+</body>
+</html>

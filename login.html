@@ -12,6 +12,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="css/login.css" />
+
+  <style>
+    /* Styling para sa Back to Homepage button sa ilalim ng Sign In */
+    .btn-back-home {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+    .btn-back-home:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+  </style>
 </head>
 <body>
   <!-- Full Background Image Container -->
@@ -60,6 +87,12 @@
       <button type="submit" class="btn-submit" id="btnSubmit">
         <span id="btnText">Sign In to Dashboard</span>
       </button>
+
+      <!-- BACK TO HOMEPAGE BUTTON (NASA ILALIM NG SIGN IN TO DASHBOARD) -->
+      <a href="homepage.html" class="btn-back-home">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        <span>Back to Homepage</span>
+      </a>
     </form>
 
     <!-- 2. RECOVERY FORM (Hidden by default) -->
