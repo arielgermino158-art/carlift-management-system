@@ -551,35 +551,6 @@ function closeCustomAlertModal() {
   }
 }
 
-/* ================= COUNTDOWN & STATUS HELPER LOGIC ================= */
-function calculatePassengerCountdown(passenger) {
-  const lastPaymentDate = passenger.last_payment_date || passenger.join_date || passenger.created_at;
-  
-  if (!lastPaymentDate) {
-    return { daysLeft: 0, statusClass: 'badge-danger', statusText: 'Overdue / Unpaid' };
-  }
-
-  const payDate = new Date(lastPaymentDate);
-  if (isNaN(payDate.getTime())) {
-    return { daysLeft: 0, statusClass: 'badge-danger', statusText: 'Overdue / Unpaid' };
-  }
-
-  const dueDate = new Date(payDate);
-  dueDate.setDate(dueDate.getDate() + 30);
-
-  const today = new Date();
-  const diffTime = dueDate - today;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays > 5) {
-    return { daysLeft: diffDays, statusClass: 'badge-active', statusText: `${diffDays} Days Left` };
-  } else if (diffDays >= 0) {
-    return { daysLeft: diffDays, statusClass: 'badge-warning', statusText: `${diffDays} Days Left` };
-  } else {
-    return { daysLeft: 0, statusClass: 'badge-danger', statusText: `Overdue` };
-  }
-}
-
 /* ================= PAGINATED PASSENGERS TABLE ================= */
 function filterPassengers() {
   currentPassengerPage = 1;
@@ -623,7 +594,7 @@ function renderMasterlistTable(data) {
   masterBody.innerHTML = '';
 
   if (paginatedData.length === 0) {
-    masterBody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 30px; color:#94a3b8; font-weight:700;">No active passengers found.</td></tr>';
+    masterBody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 30px; color:#94a3b8; font-weight:700;">No active passengers found.</td></tr>';
   } else {
     paginatedData.forEach(p => {
       const cleanPhone = p.whatsapp ? p.whatsapp.replace(/[^0-9]/g, '') : '';
@@ -654,8 +625,6 @@ function renderMasterlistTable(data) {
       let balanceHtml = '';
       const totalPaid = Number(p.total_paid) || 0;
       let remainingBalance = Math.max(0, 250 - totalPaid);
-
-      const countdownInfo = calculatePassengerCountdown(p);
 
       if (totalPaid >= 250) {
         balanceHtml = `<span style="color: #10b981; font-weight: 800; background: #ecfdf5; padding: 4px 8px; border-radius: 6px; display: inline-block;">Fully Paid (AED ${totalPaid})</span>`;
@@ -704,11 +673,6 @@ function renderMasterlistTable(data) {
                 <i class="fa-solid fa-pen"></i> Add Pay
               </button>
             </div>
-          </td>
-          <td style="text-align: center;">
-            <span class="badge ${countdownInfo.statusClass}" style="padding: 6px 10px; border-radius: 6px; display: inline-block; font-weight: 700;">
-              <i class="fa-solid fa-clock"></i> ${countdownInfo.statusText}
-            </span>
           </td>
           <td style="text-align: center;">
             ${statusBadgeHtml}
