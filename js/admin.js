@@ -551,7 +551,7 @@ function closeCustomAlertModal() {
   }
 }
 
-/* ================= PAGINATED PASSENGERS TABLE ================= */
+/* ================= PAGINATED PASSENGERS TABLE (WITH 25-DAY CYCLE LOGIC) ================= */
 function filterPassengers() {
   currentPassengerPage = 1;
   renderMasterlistTable(globalPassengerData);
@@ -622,24 +622,37 @@ function renderMasterlistTable(data) {
       const rawDateToFormat = p.join_date || p.created_at;
       const joinedDateFormatted = rawDateToFormat ? formatDateOnly(rawDateToFormat) : 'N/A';
       
-      let balanceHtml = '';
-      const totalPaid = Number(p.total_paid) || 0;
-      let remainingBalance = Math.max(0, 250 - totalPaid);
+      // ================= 25-DAY AUTOMATIC CYCLE LOGIC =================
+      const lastPayDateStr = p.last_payment_date || p.join_date || p.created_at;
+      let isExpired = false;
+      let daysPassed = 0;
 
-      if (totalPaid >= 250) {
-        balanceHtml = `<span style="color: #10b981; font-weight: 800; background: #ecfdf5; padding: 4px 8px; border-radius: 6px; display: inline-block;">Fully Paid (AED ${totalPaid})</span>`;
-      } else if (totalPaid > 0) {
-        balanceHtml = `<span style="color: #d97706; font-weight: 700;">Paid: AED ${totalPaid}<br><b style="color: #ef4444;">Bal: AED ${remainingBalance}</b></span>`;
-      } else {
-        balanceHtml = `<span style="color: #ef4444; font-weight: 700;">Unpaid (Bal: AED 250)</span>`;
+      if (lastPayDateStr) {
+        const payDate = new Date(lastPayDateStr);
+        const today = new Date();
+        const diffTime = today - payDate;
+        daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (daysPassed > 25) {
+          isExpired = true; // Lumagpas na ng 25 days, expired na ang 1-month cycle
+        }
       }
 
+      let rawTotalPaid = Number(p.total_paid) || 0;
+      let effectivePaid = isExpired ? 0 : rawTotalPaid; 
+      let remainingBalance = Math.max(0, 250 - effectivePaid);
+
+      let balanceHtml = '';
       let statusBadgeHtml = '';
-      if (totalPaid >= 250) {
+
+      if (effectivePaid >= 250) {
+        balanceHtml = `<span style="color: #10b981; font-weight: 800; background: #ecfdf5; padding: 4px 8px; border-radius: 6px; display: inline-block;">Fully Paid (AED ${effectivePaid})</span>`;
         statusBadgeHtml = `<span class="badge badge-active">Active</span>`;
-      } else if (totalPaid > 0) {
+      } else if (effectivePaid > 0) {
+        balanceHtml = `<span style="color: #d97706; font-weight: 700;">Paid: AED ${effectivePaid}<br><b style="color: #ef4444;">Bal: AED ${remainingBalance}</b></span>`;
         statusBadgeHtml = `<span class="badge" style="background: #fef3c7; color: #d97706; font-weight: 700; padding: 6px 10px; border-radius: 6px;">Partial</span>`;
       } else {
+        balanceHtml = `<span style="color: #ef4444; font-weight: 700;">Unpaid (Bal: AED 250)</span>`;
         statusBadgeHtml = `<span class="badge" style="background: #fee2e2; color: #ef4444; font-weight: 700; padding: 6px 10px; border-radius: 6px;">Inactive</span>`;
       }
 
@@ -658,13 +671,13 @@ function renderMasterlistTable(data) {
           <td><b>${p.pickup}</b> → <b>${p.dropoff}</b></td>
           <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${scheduleText || 'N/A'}</span></td>
           <td style="text-align: center; font-size: 13px; color: #475569; font-weight: 600;">
-          <div>${timeText || 'N/A'}</div>
-          <div style="margin-top: 4px;">
-            <button class="btn-action-update" onclick="openUpdateWorkingTimeModal('${p.id}', '${p.name}', '${p.time || ''}')" style="padding: 2px 8px; font-size: 11px;">
-              <i class="fa-solid fa-pen"></i> Edit Shift
-            </button>
-          </div>
-        </td>
+            <div>${timeText || 'N/A'}</div>
+            <div style="margin-top: 4px;">
+              <button class="btn-action-update" onclick="openUpdateWorkingTimeModal('${p.id}', '${p.name}', '${p.time || ''}')" style="padding: 2px 8px; font-size: 11px;">
+                <i class="fa-solid fa-pen"></i> Edit Shift
+              </button>
+            </div>
+          </td>
           <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${joinedDateFormatted}</span></td>
           <td style="text-align: center; font-size: 12px;">
             ${balanceHtml}
