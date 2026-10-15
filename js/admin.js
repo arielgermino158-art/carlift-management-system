@@ -551,7 +551,7 @@ function closeCustomAlertModal() {
   }
 }
 
-/* ================= PAGINATED PASSENGERS TABLE (WITH 25-DAY CYCLE LOGIC) ================= */
+/* ================= PAGINATED PASSENGERS TABLE (WITH 25-DAY CYCLE LOGIC & COUNTDOWN) ================= */
 function filterPassengers() {
   currentPassengerPage = 1;
   renderMasterlistTable(globalPassengerData);
@@ -594,7 +594,7 @@ function renderMasterlistTable(data) {
   masterBody.innerHTML = '';
 
   if (paginatedData.length === 0) {
-    masterBody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 30px; color:#94a3b8; font-weight:700;">No active passengers found.</td></tr>';
+    masterBody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 30px; color:#94a3b8; font-weight:700;">No active passengers found.</td></tr>';
   } else {
     paginatedData.forEach(p => {
       const cleanPhone = p.whatsapp ? p.whatsapp.replace(/[^0-9]/g, '') : '';
@@ -622,20 +622,44 @@ function renderMasterlistTable(data) {
       const rawDateToFormat = p.join_date || p.created_at;
       const joinedDateFormatted = rawDateToFormat ? formatDateOnly(rawDateToFormat) : 'N/A';
       
-      // ================= 25-DAY AUTOMATIC CYCLE LOGIC =================
-      const lastPayDateStr = p.last_payment_date || p.join_date || p.created_at;
+      // ================= 25-DAY AUTOMATIC CYCLE LOGIC (NAKABASE SA PAYMENT HISTORY) =================
+      const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
+      
+      let lastPayDateStr = null;
+      if (passengerPayments.length > 0) {
+        passengerPayments.sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
+        lastPayDateStr = passengerPayments[0].payment_date;
+      }
+
+      if (!lastPayDateStr) {
+        lastPayDateStr = p.last_payment_date || p.join_date || p.created_at;
+      }
+
+      let daysLeft = 0;
       let isExpired = false;
-      let daysPassed = 0;
+      let countdownClass = 'badge-danger';
+      let countdownText = 'Expired / Overdue';
 
       if (lastPayDateStr) {
         const payDate = new Date(lastPayDateStr);
         const today = new Date();
         const diffTime = today - payDate;
-        daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        daysLeft = 25 - daysPassed;
 
-        if (daysPassed > 25) {
-          isExpired = true; // Lumagpas na ng 25 days, expired na ang 1-month cycle
+        if (daysLeft > 5) {
+          countdownClass = 'badge-active';
+          countdownText = `${daysLeft} Days Left`;
+        } else if (daysLeft >= 0) {
+          countdownClass = 'badge-warning';
+          countdownText = `${daysLeft} Days Left`;
+        } else {
+          isExpired = true;
+          countdownClass = 'badge-danger';
+          countdownText = `Expired / Overdue`;
         }
+      } else {
+        isExpired = true;
       }
 
       let rawTotalPaid = Number(p.total_paid) || 0;
@@ -686,6 +710,11 @@ function renderMasterlistTable(data) {
                 <i class="fa-solid fa-pen"></i> Add Pay
               </button>
             </div>
+          </td>
+          <td style="text-align: center;">
+            <span class="badge ${countdownClass}" style="padding: 6px 10px; border-radius: 6px; display: inline-block; font-weight: 700;">
+              <i class="fa-solid fa-clock"></i> ${countdownText}
+            </span>
           </td>
           <td style="text-align: center;">
             ${statusBadgeHtml}
