@@ -885,6 +885,96 @@ function renderRouteReports(routeData) {
   }
 }
 
+/* ================= CSV EXPORT FUNCTION FOR MANIFEST & PAYMENTS ================= */
+function downloadCSVReport(type) {
+  let csvContent = "data:text/csv;charset=utf-8,";
+
+  if (type === 'passengers') {
+    // Headers para sa Passengers List Manifest
+    const headers = ["Passenger ID", "Name", "WhatsApp / Phone", "Pickup Route", "Dropoff Route", "Schedule", "Working Time", "Join Date", "Total Paid (AED)", "Remaining Balance (AED)", "Status"];
+    csvContent += headers.join(",") + "\n";
+
+    // Extracting Active/Masterlist Passengers Data
+    const activePassengers = globalPassengerData.filter(p => p.status === 'Active' || p.status !== 'Pending Payment');
+
+    if (activePassengers.length === 0) {
+      showToastNotification("No passenger data available to export.");
+      return;
+    }
+
+    activePassengers.forEach(p => {
+      const totalPaid = Number(p.total_paid) || 0;
+      const balance = Math.max(0, 250 - totalPaid);
+      const cleanName = `"${(p.name || '').replace(/"/g, '""')}"`;
+      const cleanPhone = `"${p.whatsapp || p.mobile || ''}"`;
+      const cleanPickup = `"${(p.pickup || '').replace(/"/g, '""')}"`;
+      const cleanDropoff = `"${(p.dropoff || '').replace(/"/g, '""')}"`;
+      const cleanSchedule = `"${(p.schedule || '').replace(/"/g, '""')}"`;
+      const cleanTime = `"${(p.time || '').replace(/"/g, '""')}"`;
+      const joinDate = formatDateOnly(p.join_date || p.created_at);
+
+      let statusText = "Inactive";
+      if (totalPaid >= 250) statusText = "Active (Fully Paid)";
+      else if (totalPaid > 0) statusText = "Partial Payment";
+
+      const row = [
+        p.id,
+        cleanName,
+        cleanPhone,
+        cleanPickup,
+        cleanDropoff,
+        cleanSchedule,
+        cleanTime,
+        joinDate,
+        totalPaid,
+        balance,
+        statusText
+      ];
+      csvContent += row.join(",") + "\n";
+    });
+
+  } else if (type === 'payments') {
+    // Headers para sa Payments Log
+    const headers = ["Receipt No", "Passenger ID", "Passenger Name", "Bill Month", "Amount Paid (AED)", "Collector", "Payment Date"];
+    csvContent += headers.join(",") + "\n";
+
+    if (globalPaymentData.length === 0) {
+      showToastNotification("No payment data available to export.");
+      return;
+    }
+
+    globalPaymentData.forEach(pay => {
+      const matchedPassenger = globalPassengerData.find(p => p.id === pay.passenger_id);
+      const passName = `"${(pay.passenger_name || (matchedPassenger ? matchedPassenger.name : 'N/A')).replace(/"/g, '""')}"`;
+      const billMonth = pay.billing_month ? formatMonthOnly(pay.billing_month) : 'N/A';
+      const formattedDate = pay.payment_date ? formatDateOnly(pay.payment_date) : 'N/A';
+
+      const row = [
+        pay.receipt_no,
+        pay.passenger_id,
+        passName,
+        `"${billMonth}"`,
+        pay.amount,
+        `"${pay.collector || 'Owner'}"`,
+        formattedDate
+      ];
+      csvContent += row.join(",") + "\n";
+    });
+  }
+
+  // Auto Download Trigger
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  const fileName = type === 'passengers' ? `Carlift_Passengers_Manifest_${new Date().toISOString().slice(0, 10)}.csv` : `Carlift_Payments_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.setAttribute("download", fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showToastNotification(`${type === 'passengers' ? 'Passenger Manifest' : 'Payments Report'} downloaded successfully!`);
+}
+
 /* ================= UPDATE WORKING TIME MODAL HANDLERS ================= */
 function openUpdateWorkingTimeModal(passengerId, passengerName, currentTime) {
   pendingActionPassengerId = passengerId;
