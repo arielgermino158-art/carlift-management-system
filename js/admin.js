@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeCustomAlertModal();
       closeUpdateWorkingTimeModal();
       closeQRScannerModal();
+      closeQRResultModal();
     }
   });
 
@@ -119,6 +120,16 @@ function switchTab(tabName, event) {
   }
 }
 
+// CLOSE QR SCANNER VIEW (Pumunta pabalik sa Dashboard o iba)
+function closeQRScannerView() {
+  stopQRScanner();
+  switchTab('dashboard', null);
+  // I-activate ang dashboard nav item visually kung kinakailangan
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  const dashNav = document.querySelector('.nav-menu .nav-item');
+  if (dashNav) dashNav.classList.add('active');
+}
+
 // UPDATE VAN CAPACITY SETTING
 function updateVanCapacitySetting(val) {
   const num = Number(val);
@@ -153,7 +164,7 @@ async function loadDashboard() {
       renderPendingTable(globalPassengerData.filter(p => p.status === 'Pending Payment'));
       renderMasterlistTable(globalPassengerData);
       renderPaymentsTable(globalPaymentData);
-      initChart(globalPassengerData, globalPaymentData); // Modern Doughnut Chart loader
+      initChart(globalPassengerData, globalPaymentData);
     }
   } catch (err) {
     console.error("Error loading dashboard data:", err);
@@ -295,7 +306,7 @@ function openVerifyModal(passengerId, passengerName) {
   if (nameElem) nameElem.innerText = passengerName || passengerId;
   if (titleElem) titleElem.innerText = 'Approve Approval';
   if (messageElem) {
-    messageElem.innerHTML = `Are you sure you want to Approve <span id="verifyModalPassengerName" style="font-weight: 800; color: #0f172a;">${passengerName || passengerId}</span> from the Approval?`;
+    messageElem.innerHTML = `Are you sure you want to Approve <span id="verifyModalPassengerName" style="font-weight: 800; color: #0f172a;">${passengerName || passengerId}</span>?`;
   }
   
   const modal = document.getElementById('verifyModal');
@@ -939,11 +950,9 @@ function downloadCSVReport(type) {
   let csvContent = "data:text/csv;charset=utf-8,";
 
   if (type === 'passengers') {
-    // Headers para sa Passengers List Manifest
     const headers = ["Passenger ID", "Name", "WhatsApp / Phone", "Pickup Route", "Dropoff Route", "Schedule", "Working Time", "Join Date", "Total Paid (AED)", "Remaining Balance (AED)", "Status"];
     csvContent += headers.join(",") + "\n";
 
-    // Extracting Active/Masterlist Passengers Data
     const activePassengers = globalPassengerData.filter(p => p.status === 'Active' || p.status !== 'Pending Payment');
 
     if (activePassengers.length === 0) {
@@ -983,7 +992,6 @@ function downloadCSVReport(type) {
     });
 
   } else if (type === 'payments') {
-    // Headers para sa Payments Log
     const headers = ["Receipt No", "Passenger ID", "Passenger Name", "Bill Month", "Amount Paid (AED)", "Collector", "Payment Date"];
     csvContent += headers.join(",") + "\n";
 
@@ -1011,7 +1019,6 @@ function downloadCSVReport(type) {
     });
   }
 
-  // Auto Download Trigger
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
@@ -1197,7 +1204,6 @@ function openQRScannerModal() {
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
-        // Successful QR scan
         handleScannedQRCode(decodedText);
       },
       (errorMessage) => {
@@ -1231,23 +1237,106 @@ function closeQRScannerModal() {
   }
 }
 
+function closeQRResultModal() {
+  const modal = document.getElementById('qrResultModal');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
+}
+
 function handleScannedQRCode(scannedCode) {
   closeQRScannerModal();
   
-  // Hanapin ang passenger batay sa scanned ID
+  // Hanapin ang passenger batay sa scanned ID o pangalan
   const matchedPassenger = globalPassengerData.find(p => p.id === scannedCode || p.id.toLowerCase() === scannedCode.toLowerCase());
   
   if (matchedPassenger) {
-    showToastNotification(`QR Valid! Passenger: ${matchedPassenger.name}`);
+    // I-populate ang QR Result Modal elements
+    const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='11'>No Photo</text></svg>";
     
-    // Auto fill sa passenger search box
-    const searchElem = document.getElementById('passengerSearch');
-    if (searchElem) {
-      searchElem.value = matchedPassenger.id;
-      filterPassengers();
+    const photoElem = document.getElementById('qrScanPhoto');
+    const nameElem = document.getElementById('qrScanName');
+    const phoneElem = document.getElementById('qrScanPhone');
+    const statusBadgeElem = document.getElementById('qrScanStatusBadge');
+    const totalPaidElem = document.getElementById('qrScanTotalPaid');
+    const balanceElem = document.getElementById('qrScanBalance');
+    const countdownElem = document.getElementById('qrScanCountdown');
+
+    if (photoElem) photoElem.src = matchedPassenger.photo || defaultAvatar;
+    if (nameElem) nameElem.innerText = `${matchedPassenger.name} (${matchedPassenger.id})`;
+    if (phoneElem) phoneElem.innerText = matchedPassenger.whatsapp || matchedPassenger.mobile || 'No Phone';
+
+    // Kalkulahin ang balance at 25-day countdown para sa modal
+    const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === matchedPassenger.id);
+    let lastPayDateStr = null;
+    if (passengerPayments.length > 0) {
+      passengerPayments.sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
+      lastPayDateStr = passengerPayments[0].payment_date;
     }
+    if (!lastPayDateStr) {
+      lastPayDateStr = matchedPassenger.last_payment_date || matchedPassenger.join_date || matchedPassenger.created_at;
+    }
+
+    let daysLeft = 0;
+    let isExpired = false;
+    let countdownText = 'Expired / Overdue';
+
+    if (lastPayDateStr) {
+      const payDate = new Date(lastPayDateStr);
+      const today = new Date();
+      const diffTime = today - payDate;
+      const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      daysLeft = 25 - daysPassed;
+
+      if (daysLeft >= 0) {
+        countdownText = `${daysLeft} Days Left`;
+      } else {
+        isExpired = true;
+        countdownText = 'Expired / Overdue';
+      }
+    } else {
+      isExpired = true;
+    }
+
+    const totalPaid = Number(matchedPassenger.total_paid) || 0;
+    const effectivePaid = isExpired ? 0 : totalPaid;
+    const remainingBalance = Math.max(0, 250 - effectivePaid);
+
+    if (totalPaid >= 250 && !isExpired) {
+      if (statusBadgeElem) {
+        statusBadgeElem.className = 'badge badge-active';
+        statusBadgeElem.innerText = 'Active';
+      }
+    } else if (totalPaid > 0 && !isExpired) {
+      if (statusBadgeElem) {
+        statusBadgeElem.className = 'badge';
+        statusBadgeElem.style.background = '#fef3c7';
+        statusBadgeElem.style.color = '#d97706';
+        statusBadgeElem.innerText = 'Partial';
+      }
+    } else {
+      if (statusBadgeElem) {
+        statusBadgeElem.className = 'badge';
+        statusBadgeElem.style.background = '#fee2e2';
+        statusBadgeElem.style.color = '#ef4444';
+        statusBadgeElem.innerText = 'Inactive / Expired';
+      }
+    }
+
+    if (totalPaidElem) totalPaidElem.innerText = `AED ${effectivePaid}`;
+    if (balanceElem) balanceElem.innerText = `AED ${remainingBalance}`;
+    if (countdownElem) countdownElem.innerText = countdownText;
+
+    // Buksan ang QR Result Modal
+    const resultModal = document.getElementById('qrResultModal');
+    if (resultModal) {
+      resultModal.classList.add('active');
+      resultModal.style.display = 'flex';
+    }
+
   } else {
-    showToastNotification(`Scanned Code: ${scannedCode} - No matching passenger found.`);
+    showToastNotification(`Scanned Code: "${scannedCode}" - No matching passenger found.`);
   }
 }
 
