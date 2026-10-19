@@ -124,7 +124,6 @@ function switchTab(tabName, event) {
 function closeQRScannerView() {
   stopQRScanner();
   switchTab('dashboard', null);
-  // I-activate ang dashboard nav item visually kung kinakailangan
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
   const dashNav = document.querySelector('.nav-menu .nav-item');
   if (dashNav) dashNav.classList.add('active');
@@ -1251,29 +1250,32 @@ function handleScannedQRCode(scannedCode) {
 
   if (!scannedCode) return;
 
-  // 2. Smart QR Parsing (Kahit JSON o Plain Text ID ang na-scan, mahahanap pa rin!)
-  let targetId = scannedCode.trim();
+  let cleanCode = scannedCode.trim();
 
-  // Kung JSON string ang na-scan mula sa QR Code ng pasahero
+  // 2. Smart QR Parsing (Kahit JSON, URL, o Plain Text ID, mababasa!)
   try {
-    const parsed = JSON.parse(scannedCode);
-    if (parsed.id) targetId = parsed.id;
-    else if (parsed.passengerId) targetId = parsed.passengerId;
+    if (cleanCode.startsWith('{')) {
+      const parsed = JSON.parse(cleanCode);
+      cleanCode = parsed.id || parsed.passengerId || parsed.passId || cleanCode;
+    } else if (cleanCode.includes('/')) {
+      const parts = cleanCode.split('/');
+      cleanCode = parts[parts.length - 1] || cleanCode;
+    }
   } catch (e) {
-    // String/Plain text ID lang ang QR
+    console.warn("QR parsing fallback applied:", e);
   }
 
-  // 3. Hanapin ang pasahero sa globalPassengerData (Matching ID or Name)
+  // 3. Hanapin ang pasahero sa globalPassengerData (Passenger List)
   const matchedPassenger = globalPassengerData.find(p => 
-    (p.id && p.id.toLowerCase() === targetId.toLowerCase()) ||
-    (p.name && p.name.toLowerCase() === targetId.toLowerCase())
+    (p.id && p.id.toLowerCase() === cleanCode.toLowerCase()) ||
+    (p.name && p.name.toLowerCase() === cleanCode.toLowerCase()) ||
+    (p.whatsapp && p.whatsapp.includes(cleanCode)) ||
+    (p.mobile && p.mobile.includes(cleanCode))
   );
 
   if (matchedPassenger) {
-    // Default Avatar kung walang na-upload na photo
     const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='11'>No Photo</text></svg>";
 
-    // Elements sa QR Result Modal
     const photoElem = document.getElementById('qrScanPhoto');
     const nameElem = document.getElementById('qrScanName');
     const phoneElem = document.getElementById('qrScanPhone');
@@ -1282,12 +1284,12 @@ function handleScannedQRCode(scannedCode) {
     const balanceElem = document.getElementById('qrScanBalance');
     const countdownElem = document.getElementById('qrScanCountdown');
 
-    // I-populate ang Passenger Details
+    // Populate Data
     if (photoElem) photoElem.src = matchedPassenger.photo || defaultAvatar;
     if (nameElem) nameElem.innerText = `${matchedPassenger.name} (${matchedPassenger.id})`;
     if (phoneElem) phoneElem.innerText = matchedPassenger.whatsapp || matchedPassenger.mobile || 'No Phone';
 
-    // 4. Compute Payments & 25-Day Cycle Breakdown
+    // 4. Compute Payment Breakdown & 25-Day Cycle
     const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === matchedPassenger.id);
     let lastPayDateStr = null;
     
@@ -1324,7 +1326,7 @@ function handleScannedQRCode(scannedCode) {
     const effectivePaid = isExpired ? 0 : totalPaid;
     const remainingBalance = Math.max(0, 250 - effectivePaid);
 
-    // Status Badge Logic
+    // Status Badge Formatting
     if (statusBadgeElem) {
       if (totalPaid >= 250 && !isExpired) {
         statusBadgeElem.className = 'badge badge-active';
@@ -1348,7 +1350,7 @@ function handleScannedQRCode(scannedCode) {
     if (balanceElem) balanceElem.innerText = `AED ${remainingBalance}`;
     if (countdownElem) countdownElem.innerText = countdownText;
 
-    // 5. Buksan ang Passenger Verified Modal (WALANG COUNTDOWN, MANANATILI HANGGANG I-CLOSE MO)
+    // 5. Buksan ang Passenger Verified Profile Modal
     const resultModal = document.getElementById('qrResultModal');
     if (resultModal) {
       resultModal.classList.add('active');
@@ -1356,10 +1358,11 @@ function handleScannedQRCode(scannedCode) {
     }
 
   } else {
-    // Kapag totoong wala sa database
-    showToastNotification(`Scanned Code: "${scannedCode}" - No matching passenger found.`);
+    // Kapag wala sa Passenger List Database
+    showToastNotification(`Scanned Code: "${cleanCode}" - No matching passenger found in Passenger List.`);
   }
 }
+
 /* ================= OWNER LOGOUT SYSTEM ================= */
 function openLogoutModal() {
   const modal = document.getElementById('logoutModal');
