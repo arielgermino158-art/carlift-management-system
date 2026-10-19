@@ -114,7 +114,7 @@ function closeConfirmModal() {
   if (modal) modal.style.display = 'none';
 }
 
-// QR Code Modal Handlers
+// QR Code Modal Handlers (Manual Close)
 function openQrModal() {
   const qrModal = document.getElementById('qrModal');
   if (qrModal) qrModal.style.display = 'flex';
@@ -201,15 +201,12 @@ async function proceedRegistration() {
       statusResult.style.display = 'block';
 
       // ==========================================
-      // GENERATE DYNAMIC QR CODE FOR THIS USER (PINASALANG PASSENGER ID O JSON)
+      // GENERATE DYNAMIC QR CODE FOR THIS USER (JSON format na may Passenger ID)
       // ==========================================
       const qrContainer = document.getElementById('qrcode');
-      qrContainer.innerHTML = ""; // Linisin muna kung meron man lumang QR
+      qrContainer.innerHTML = ""; 
 
-      // Kunin ang Passenger ID mula sa response ng server (hal. result.passengerId o result.id)
       const passengerId = result.passengerId || result.id || nameVal;
-
-      // Gawin nating JSON o mismong ID ang laman para madaling basahin ng admin scanner
       const qrPayload = JSON.stringify({ id: passengerId, name: nameVal, phone: whatsappNumber });
       
       new QRCode(qrContainer, {
@@ -223,25 +220,8 @@ async function proceedRegistration() {
 
       document.getElementById('qrDetailsText').textContent = `${nameVal} (${whatsappNumber}) - ID: ${passengerId}`;
 
-      // Awtomatikong buksan ang QR code modal para makita agad ng pasahero
+      // Buksan ang QR modal at MANATILI ITO hanggang pindutin ang "I-close ang QR" button
       openQrModal();
-
-      // Automated Timer para bumalik sa form
-      let countdown = 10; 
-      const timerText = document.getElementById('resetTimerText');
-      if (timerText) timerText.textContent = `Returning to form in ${countdown} seconds...`;
-
-      const countdownInterval = setInterval(() => {
-        countdown--;
-        if (timerText) {
-          timerText.textContent = `Returning to form in ${countdown} seconds...`;
-        }
-        if (countdown <= 0) {
-          clearInterval(countdownInterval);
-          closeQrModal();
-          resetRegistrationForm();
-        }
-      }, 1000);
 
     } else {
       alert("Error: " + (result.error || result.message));
