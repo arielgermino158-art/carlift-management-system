@@ -201,16 +201,19 @@ async function proceedRegistration() {
       statusResult.style.display = 'block';
 
       // ==========================================
-      // GENERATE DYNAMIC QR CODE FOR THIS USER
+      // GENERATE DYNAMIC QR CODE FOR THIS USER (PINASALANG PASSENGER ID O JSON)
       // ==========================================
       const qrContainer = document.getElementById('qrcode');
       qrContainer.innerHTML = ""; // Linisin muna kung meron man lumang QR
 
-      // Ang laman ng QR ay ang Pangalan at WhatsApp para madaling ma-scan ng driver
-      const qrTextContent = `Name: ${nameVal} | WhatsApp: ${whatsappNumber} | Status: PENDING PAYMENT`;
+      // Kunin ang Passenger ID mula sa response ng server (hal. result.passengerId o result.id)
+      const passengerId = result.passengerId || result.id || nameVal;
+
+      // Gawin nating JSON o mismong ID ang laman para madaling basahin ng admin scanner
+      const qrPayload = JSON.stringify({ id: passengerId, name: nameVal, phone: whatsappNumber });
       
       new QRCode(qrContainer, {
-        text: qrTextContent,
+        text: qrPayload,
         width: 160,
         height: 160,
         colorDark: "#0f172a",
@@ -218,13 +221,13 @@ async function proceedRegistration() {
         correctLevel: QRCode.CorrectLevel.H
       });
 
-      document.getElementById('qrDetailsText').textContent = `${nameVal} (${whatsappNumber})`;
+      document.getElementById('qrDetailsText').textContent = `${nameVal} (${whatsappNumber}) - ID: ${passengerId}`;
 
       // Awtomatikong buksan ang QR code modal para makita agad ng pasahero
       openQrModal();
 
       // Automated Timer para bumalik sa form
-      let countdown = 10; // Ginawa nating 10 seconds para may sapat silang oras makita ang QR o i-close ito
+      let countdown = 10; 
       const timerText = document.getElementById('resetTimerText');
       if (timerText) timerText.textContent = `Returning to form in ${countdown} seconds...`;
 
