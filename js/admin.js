@@ -1281,7 +1281,6 @@ function handleScannedQRCode(scannedCode) {
     const phoneElem = document.getElementById('qrScanPhone');
     const statusBadgeElem = document.getElementById('qrScanStatusBadge');
     const latestPaymentElem = document.getElementById('qrScanLatestPayment');
-    const totalPaidElem = document.getElementById('qrScanTotalPaid');
     const balanceElem = document.getElementById('qrScanBalance');
     const countdownElem = document.getElementById('qrScanCountdown');
 
@@ -1356,7 +1355,6 @@ function handleScannedQRCode(scannedCode) {
     }
 
     if (latestPaymentElem) latestPaymentElem.innerText = latestPaymentText;
-    if (totalPaidElem) totalPaidElem.innerText = `AED ${effectivePaid}`;
     if (balanceElem) balanceElem.innerText = `AED ${remainingBalance}`;
     if (countdownElem) countdownElem.innerText = countdownText;
 
