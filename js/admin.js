@@ -120,7 +120,7 @@ function switchTab(tabName, event) {
   }
 }
 
-// CLOSE QR SCANNER VIEW (Pumunta pabalik sa Dashboard o iba)
+// CLOSE QR SCANNER VIEW
 function closeQRScannerView() {
   stopQRScanner();
   switchTab('dashboard', null);
@@ -1252,7 +1252,7 @@ function handleScannedQRCode(scannedCode) {
 
   let cleanCode = scannedCode.trim();
 
-  // 2. Smart QR Parsing (Kahit JSON, URL, o Plain Text ID, mababasa!)
+  // 2. Smart QR Parsing (JSON, URL, o Plain Text ID)
   try {
     if (cleanCode.startsWith('{')) {
       const parsed = JSON.parse(cleanCode);
@@ -1280,27 +1280,36 @@ function handleScannedQRCode(scannedCode) {
     const nameElem = document.getElementById('qrScanName');
     const phoneElem = document.getElementById('qrScanPhone');
     const statusBadgeElem = document.getElementById('qrScanStatusBadge');
+    const latestPaymentElem = document.getElementById('qrScanLatestPayment');
     const totalPaidElem = document.getElementById('qrScanTotalPaid');
     const balanceElem = document.getElementById('qrScanBalance');
     const countdownElem = document.getElementById('qrScanCountdown');
 
-    // Populate Data
+    // Populate Basic Profile Data
     if (photoElem) photoElem.src = matchedPassenger.photo || defaultAvatar;
     if (nameElem) nameElem.innerText = `${matchedPassenger.name} (${matchedPassenger.id})`;
     if (phoneElem) phoneElem.innerText = matchedPassenger.whatsapp || matchedPassenger.mobile || 'No Phone';
 
-    // 4. Compute Payment Breakdown & 25-Day Cycle
+    // 4. Hanapin ang LATEST PAYMENT ng pasahero mula sa globalPaymentData
     const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === matchedPassenger.id);
     let lastPayDateStr = null;
-    
+    let latestPaymentText = "No payment record";
+
     if (passengerPayments.length > 0) {
+      // I-sort mula sa pinakabagong payment date
       passengerPayments.sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
-      lastPayDateStr = passengerPayments[0].payment_date;
+      const latestPay = passengerPayments[0];
+      
+      lastPayDateStr = latestPay.payment_date;
+      const formattedLatestDate = formatDateOnly(lastPayDateStr);
+      latestPaymentText = `AED ${latestPay.amount} (${formattedLatestDate})`;
     }
+
     if (!lastPayDateStr) {
       lastPayDateStr = matchedPassenger.last_payment_date || matchedPassenger.join_date || matchedPassenger.created_at;
     }
 
+    // 5. Compute 25-Day Cycle
     let daysLeft = 0;
     let isExpired = false;
     let countdownText = 'Expired / Overdue';
@@ -1346,11 +1355,12 @@ function handleScannedQRCode(scannedCode) {
       }
     }
 
+    if (latestPaymentElem) latestPaymentElem.innerText = latestPaymentText;
     if (totalPaidElem) totalPaidElem.innerText = `AED ${effectivePaid}`;
     if (balanceElem) balanceElem.innerText = `AED ${remainingBalance}`;
     if (countdownElem) countdownElem.innerText = countdownText;
 
-    // 5. Buksan ang Passenger Verified Profile Modal
+    // 6. Buksan ang Passenger Verified Profile Modal
     const resultModal = document.getElementById('qrResultModal');
     if (resultModal) {
       resultModal.classList.add('active');
