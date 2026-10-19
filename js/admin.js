@@ -23,6 +23,9 @@ let currentDeleteContext = 'passenger'; // 'passenger' or 'approval'
 let customAlertTimer = null;
 let receiptTimer = null;
 
+// QR SCANNER INSTANCE
+let html5QrCodeScanner = null;
+
 // HELPER: GET AUTH HEADERS
 function getAuthHeaders() {
   const token = localStorage.getItem('carlift_admin_token');
@@ -62,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeLogoutModal();
       closeCustomAlertModal();
       closeUpdateWorkingTimeModal();
+      closeQRResultModal();
     }
   });
 
@@ -109,6 +113,10 @@ function switchTab(tabName, event) {
 
   if (tabName === 'reports') {
     loadReportsData();
+  } else if (tabName === 'qrscanner') {
+    startQRScanner();
+  } else {
+    stopQRScanner();
   }
 }
 
@@ -146,7 +154,7 @@ async function loadDashboard() {
       renderPendingTable(globalPassengerData.filter(p => p.status === 'Pending Payment'));
       renderMasterlistTable(globalPassengerData);
       renderPaymentsTable(globalPaymentData);
-      initChart(globalPassengerData, globalPaymentData); // Modern Doughnut Chart loader
+      initChart(globalPassengerData, globalPaymentData);
     }
   } catch (err) {
     console.error("Error loading dashboard data:", err);
@@ -212,12 +220,8 @@ function renderPendingTable(pendingList) {
         }
       }
 
-      if (scheduleText) {
-        scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      }
-      if (timeText) {
-        timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      }
+      if (scheduleText) scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
+      if (timeText) timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
 
       const rawDateToFormat = p.join_date || p.created_at;
       const joinedDateFormatted = rawDateToFormat ? formatDateOnly(rawDateToFormat) : 'N/A';
@@ -262,304 +266,6 @@ function renderPendingTable(pendingList) {
   if (infoElem) infoElem.innerText = `Showing page ${currentPendingPage} of ${totalPages} (${totalItems} pending requests)`;
   if (prevBtn) prevBtn.disabled = (currentPendingPage === 1);
   if (nextBtn) nextBtn.disabled = (currentPendingPage === totalPages || totalPages === 0);
-}
-
-/* ================= PASSENGER PHOTO MODAL HANDLERS ================= */
-function openImageModal(imgSrc, passengerName) {
-  const imgPreview = document.getElementById('imageModalPreview');
-  const titleElem = document.getElementById('imageModalTitle');
-  if (imgPreview) imgPreview.src = imgSrc;
-  if (titleElem) titleElem.innerHTML = `<i class="fa-solid fa-user"></i> ${passengerName || 'Passenger Photo'}`;
-  document.getElementById('imageModal').classList.add('active');
-}
-
-function closeImageModal() {
-  document.getElementById('imageModal').classList.remove('active');
-}
-
-/* ================= CUSTOM APPROVE & DELETE MODAL HANDLERS ================= */
-function openVerifyModal(passengerId, passengerName) {
-  pendingActionPassengerId = passengerId;
-  
-  const titleElem = document.getElementById('verifyModalTitle');
-  const messageElem = document.getElementById('verifyModalMessage');
-  const nameElem = document.getElementById('verifyModalPassengerName');
-
-  if (nameElem) nameElem.innerText = passengerName || passengerId;
-  if (titleElem) titleElem.innerText = 'Approve Approval';
-  if (messageElem) {
-    messageElem.innerHTML = `Are you sure you want to Approve <span id="verifyModalPassengerName" style="font-weight: 800; color: #0f172a;">${passengerName || passengerId}</span> from the Approval?`;
-  }
-  
-  const modal = document.getElementById('verifyModal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeVerifyModal() {
-  pendingActionPassengerId = null;
-  const modal = document.getElementById('verifyModal');
-  if (modal) modal.classList.remove('active');
-}
-
-async function confirmVerifyPayment() {
-  if (!pendingActionPassengerId) return;
-  const passengerId = pendingActionPassengerId;
-  closeVerifyModal();
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/passengers/${passengerId}/status`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ status: 'Active' })
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      showToastNotification(`Passenger approved and moved to Passenger List!`);
-      loadDashboard();
-    } else {
-      showToastNotification(`Error: ${data.message || 'Approval failed.'}`);
-    }
-  } catch (err) {
-    showToastNotification("Failed to connect to server.");
-  }
-}
-
-function openDeleteModal(passengerId, passengerName, context = 'passenger') {
-  pendingActionPassengerId = passengerId;
-  currentDeleteContext = context;
-
-  const titleElem = document.getElementById('deleteModalTitle');
-  const messageElem = document.getElementById('deleteModalMessage');
-  const nameElem = document.getElementById('deleteModalPassengerName');
-
-  if (nameElem) nameElem.innerText = passengerName || passengerId;
-
-  if (context === 'approval') {
-    if (titleElem) titleElem.innerText = 'Delete Approval';
-    if (messageElem) messageElem.innerHTML = `Are you sure you want to delete <span id="deleteModalPassengerName" style="font-weight: 800; color: #0f172a;">${passengerName || passengerId}</span>?`;
-  } else {
-    if (titleElem) titleElem.innerText = 'Delete Passenger';
-    if (messageElem) messageElem.innerHTML = `Are you sure you want to delete <span id="deleteModalPassengerName" style="font-weight: 800; color: #0f172a;">${passengerName || passengerId}</span>?`;
-  }
-
-  const modal = document.getElementById('deleteModal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeDeleteModal() {
-  pendingActionPassengerId = null;
-  currentDeleteContext = 'passenger';
-  const modal = document.getElementById('deleteModal');
-  if (modal) modal.classList.remove('active');
-}
-
-async function confirmDeletePassenger() {
-  if (!pendingActionPassengerId) return;
-  const passengerId = pendingActionPassengerId;
-  closeDeleteModal();
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/passengers/${passengerId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    });
-    await res.json().catch(() => ({ success: true }));
-  } catch (err) {
-    console.warn("Offline or server error, deleting from local array:", err);
-  }
-
-  globalPassengerData = globalPassengerData.filter(p => p.id !== passengerId);
-  
-  updateKPIs(globalPassengerData, globalPaymentData);
-  renderMasterlistTable(globalPassengerData);
-  renderPendingTable(globalPassengerData.filter(p => p.status === 'Pending Payment'));
-  
-  const successMsg = currentDeleteContext === 'approval' 
-    ? "Approval successfully removed from system record." 
-    : "Passenger successfully removed from passenger list.";
-
-  showToastNotification(successMsg);
-}
-
-/* ================= UPDATE PAYMENT DATE & PARTIAL AMOUNT MODAL HANDLERS ================= */
-function openUpdatePaymentDateModal(passengerId, passengerName) {
-  pendingActionPassengerId = passengerId;
-  
-  const nameElem = document.getElementById('updateModalPassengerName');
-  const idInput = document.getElementById('modalUpdatePassengerId');
-  const dateInput = document.getElementById('modalNewPaymentDate');
-  const amountInput = document.getElementById('modalPartialAmount');
-
-  if (nameElem) nameElem.innerText = passengerName || passengerId;
-  if (idInput) idInput.value = passengerId;
-  
-  if (dateInput) {
-    dateInput.value = new Date().toISOString().slice(0, 10);
-  }
-
-  const modal = document.getElementById('updatePaymentDateModal');
-  if (modal) modal.classList.add('active');
-}
-
-function setModalAmount(amount) {
-  const amountInput = document.getElementById('modalPartialAmount');
-  if (amountInput) {
-    amountInput.value = amount;
-  }
-}
-
-function closeUpdatePaymentDateModal() {
-  pendingActionPassengerId = null;
-  const modal = document.getElementById('updatePaymentDateModal');
-  if (modal) modal.classList.remove('active');
-}
-
-async function confirmUpdatePaymentDate() {
-  const passengerId = pendingActionPassengerId;
-  const dateInput = document.getElementById('modalNewPaymentDate');
-  const amountInput = document.getElementById('modalPartialAmount');
-  
-  const newDateValue = dateInput ? dateInput.value : '';
-  const paidAmount = amountInput ? Number(amountInput.value) : 250;
-  
-  const billingMonth = newDateValue || new Date().toISOString().slice(0, 10);
-
-  if (!passengerId || !newDateValue) {
-    showToastNotification("Please select a valid payment date.");
-    return;
-  }
-
-  if (paidAmount <= 0) {
-    showToastNotification("Please enter a valid amount.");
-    return;
-  }
-
-  closeUpdatePaymentDateModal();
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/record-payment`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ 
-        passengerId: passengerId, 
-        amount: paidAmount, 
-        collector: 'Owner Update',
-        payment_date: newDateValue,
-        billing_month: billingMonth 
-      })
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      showToastNotification(`Payment of AED ${paidAmount} recorded successfully! Receipt #${data.receiptNo}`);
-      loadDashboard();
-      
-      if (typeof triggerSuccessReceiptTimer === 'function') {
-        triggerSuccessReceiptTimer(data.receiptNo, paidAmount, 'Owner Update');
-      }
-    } else {
-      showToastNotification(data.message || 'Failed to update payment date.');
-    }
-  } catch (err) {
-    showToastNotification("Server error while recording payment.");
-  }
-}
-
-/* ================= SUCCESS RECEIPT MODAL CONTROLS ================= */
-function triggerSuccessReceiptTimer(receiptNo, amount, collector) {
-  const modal = document.getElementById('successReceiptModal');
-  const countdownNum = document.getElementById('receiptCountdownNum');
-  if (!modal) return;
-
-  if (receiptTimer) {
-    clearInterval(receiptTimer);
-    receiptTimer = null;
-  }
-
-  modal.style.display = 'flex';
-  let timeLeft = 3;
-  if (countdownNum) countdownNum.innerText = timeLeft;
-
-  receiptTimer = setInterval(() => {
-    timeLeft--;
-    if (countdownNum) countdownNum.innerText = timeLeft;
-    if (timeLeft <= 0) {
-      clearInterval(receiptTimer);
-      receiptTimer = null;
-      closeSuccessReceiptModal();
-    }
-  }, 1000);
-}
-
-function closeSuccessReceiptModal() {
-  const modal = document.getElementById('successReceiptModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-  if (receiptTimer) {
-    clearInterval(receiptTimer);
-    receiptTimer = null;
-  }
-  if (typeof loadDashboard === 'function') {
-    loadDashboard();
-  }
-}
-
-/* ================= CUSTOM ENGLISH ALERT MODAL WITH 3-SECOND TIMER ================= */
-function showToastNotification(message) {
-  let alertModal = document.getElementById('customAlertModal');
-  if (!alertModal) {
-    alertModal = document.createElement('div');
-    alertModal.id = 'customAlertModal';
-    alertModal.className = 'modal-overlay';
-    alertModal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;";
-    alertModal.innerHTML = `
-      <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <div style="font-size: 38px; color: #10b981; margin-bottom: 10px;"><i class="fa-solid fa-circle-check"></i></div>
-        <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 8px;">System Notification</h3>
-        <p id="customAlertMessage" style="font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.5;"></p>
-        <button type="button" onclick="closeCustomAlertModal()" style="padding: 10px 24px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">OK</button>
-      </div>
-    `;
-    document.body.appendChild(alertModal);
-  }
-
-  document.getElementById('customAlertMessage').innerText = message;
-  alertModal.classList.add('active');
-  alertModal.style.display = 'flex';
-
-  if (customAlertTimer) {
-    clearTimeout(customAlertTimer);
-    customAlertTimer = null;
-  }
-
-  customAlertTimer = setTimeout(() => {
-    closeCustomAlertModal();
-  }, 3000);
-}
-
-function closeCustomAlertModal() {
-  const alertModal = document.getElementById('customAlertModal');
-  if (alertModal) {
-    alertModal.classList.remove('active');
-    alertModal.style.display = 'none';
-  }
-  if (customAlertTimer) {
-    clearTimeout(customAlertTimer);
-    customAlertTimer = null;
-  }
-}
-
-/* ================= PAGINATED PASSENGERS TABLE (WITH 25-DAY CYCLE LOGIC & COUNTDOWN) ================= */
-function filterPassengers() {
-  currentPassengerPage = 1;
-  renderMasterlistTable(globalPassengerData);
-}
-
-function changePassengersPage(direction) {
-  currentPassengerPage += direction;
-  renderMasterlistTable(globalPassengerData);
 }
 
 function renderMasterlistTable(data) {
@@ -612,17 +318,12 @@ function renderMasterlistTable(data) {
         }
       }
 
-      if (scheduleText) {
-        scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      }
-      if (timeText) {
-        timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      }
+      if (scheduleText) scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
+      if (timeText) timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
 
       const rawDateToFormat = p.join_date || p.created_at;
       const joinedDateFormatted = rawDateToFormat ? formatDateOnly(rawDateToFormat) : 'N/A';
       
-      // ================= 25-DAY AUTOMATIC CYCLE LOGIC (NAKABASE SA PAYMENT HISTORY) =================
       const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
       
       let lastPayDateStr = null;
@@ -739,60 +440,6 @@ function renderMasterlistTable(data) {
   if (nextBtn) nextBtn.disabled = (currentPassengerPage === totalPages || totalPages === 0);
 }
 
-function changePendingPage(direction) {
-  currentPendingPage += direction;
-  const pendingList = globalPassengerData.filter(p => p.status === 'Pending Payment');
-  renderPendingTable(pendingList);
-}
-
-/* ================= DATE ONLY FORMATTER (DD-MM-YYYY) ================= */
-function formatDateOnly(dateString) {
-  if (!dateString) return 'N/A';
-  
-  if (typeof dateString === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
-    return dateString;
-  }
-
-  let dateObj = new Date(dateString);
-  if (isNaN(dateObj.getTime())) {
-    const cleaned = dateString.replace(' ', 'T');
-    dateObj = new Date(cleaned);
-  }
-  
-  if (isNaN(dateObj.getTime())) return dateString;
-
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const year = dateObj.getFullYear();
-
-  return `${day}-${month}-${year}`;
-}
-
-/* ================= HELPER: FORMAT MONTH ONLY ================= */
-function formatMonthOnly(dateString) {
-  if (!dateString) return 'N/A';
-  
-  let dateObj = new Date(dateString);
-  if (isNaN(dateObj.getTime())) {
-    dateObj = new Date(dateString.replace(' ', 'T'));
-  }
-  
-  if (isNaN(dateObj.getTime())) return dateString;
-
-  return dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-}
-
-/* ================= PAGINATED PAYMENTS TABLE ================= */
-function filterPayments() {
-  currentPaymentPage = 1;
-  renderPaymentsTable(globalPaymentData);
-}
-
-function changePaymentsPage(direction) {
-  currentPaymentPage += direction;
-  renderPaymentsTable(globalPaymentData);
-}
-
 function renderPaymentsTable(data) {
   const searchElem = document.getElementById('paymentSearch');
   const searchQuery = searchElem ? searchElem.value.toLowerCase() : '';
@@ -802,12 +449,7 @@ function renderPaymentsTable(data) {
   displayData.sort((a, b) => {
     const dateA = new Date(a.payment_date || 0);
     const dateB = new Date(b.payment_date || 0);
-    
-    if (dateB - dateA !== 0) {
-      return dateB - dateA;
-    }
-    
-    return (b.receipt_no || '').localeCompare(a.receipt_no || '');
+    return dateB - dateA;
   });
 
   if (searchQuery) {
@@ -872,308 +514,183 @@ function renderPaymentsTable(data) {
   if (nextBtn) nextBtn.disabled = (currentPaymentPage === totalPages || totalPages === 0);
 }
 
-/* ================= PAGINATED REPORTS TABLE ================= */
-async function loadReportsData() {
-  try {
-    const res = await fetch(`${API_BASE_URL}/reports/summary`, {
-      headers: getAuthHeaders()
-    });
-    const data = await res.json();
-    if (data.success) {
-      reportSummaryData = data;
-      globalRouteData = data.routeRevenue || [];
-      renderRouteReports(globalRouteData);
-    }
-  } catch (err) {
-    console.error("Error loading reports:", err);
+/* ================= QR SCANNER REAL-TIME VERIFICATION ================= */
+function startQRScanner() {
+  if (!html5QrCodeScanner) {
+    html5QrCodeScanner = new Html5QrcodeScanner(
+      "qrReader",
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      false
+    );
+  }
+  html5QrCodeScanner.render(onScanSuccess, onScanFailure);
+}
+
+function stopQRScanner() {
+  if (html5QrCodeScanner) {
+    html5QrCodeScanner.clear().catch(err => console.error("Scanner stop error:", err));
   }
 }
 
-function changeReportsPage(direction) {
-  currentReportPage += direction;
-  renderRouteReports(globalRouteData);
-}
+function onScanSuccess(decodedText) {
+  stopQRScanner();
 
-function renderRouteReports(routeData) {
-  const totalItems = routeData.length;
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+  // Clean scan string and match against database passengers
+  const matchedPassenger = globalPassengerData.find(p => 
+    (p.name && decodedText.toLowerCase().includes(p.name.toLowerCase())) || 
+    (p.id && decodedText.toLowerCase().includes(p.id.toLowerCase())) || 
+    (p.whatsapp && decodedText.includes(p.whatsapp.replace(/[^0-9]/g, '')))
+  );
 
-  if (currentReportPage < 1) currentReportPage = 1;
-  if (currentReportPage > totalPages) currentReportPage = totalPages;
-
-  const startIndex = (currentReportPage - 1) * ITEMS_PER_PAGE;
-  const paginatedData = routeData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  const tbody = document.getElementById('routeReportTableBody');
-  if (!tbody) return;
-
-  tbody.innerHTML = '';
-
-  if (paginatedData.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 20px;">No active route statistics found.</td></tr>';
+  if (matchedPassenger) {
+    displayScannedPassengerModal(matchedPassenger);
   } else {
-    paginatedData.forEach(r => {
-      const revenueNum = Number(r.total_revenue) || 0;
-      const row = `
-        <tr>
-          <td><b>${r.route}</b></td>
-          <td><span class="id-chip">${r.passenger_count} Active</span></td>
-          <td>AED 250 / mo</td>
-          <td style="font-weight: 800; color: #10b981;">AED ${revenueNum.toLocaleString()}</td>
-        </tr>
-      `;
-      tbody.innerHTML += row;
-    });
+    showToastNotification("QR Code invalid or Passenger record not found!");
   }
 }
 
-/* ================= CSV EXPORT FUNCTION FOR MANIFEST & PAYMENTS ================= */
-function downloadCSVReport(type) {
-  let csvContent = "data:text/csv;charset=utf-8,";
-
-  if (type === 'passengers') {
-    // Headers para sa Passengers List Manifest
-    const headers = ["Passenger ID", "Name", "WhatsApp / Phone", "Pickup Route", "Dropoff Route", "Schedule", "Working Time", "Join Date", "Total Paid (AED)", "Remaining Balance (AED)", "Status"];
-    csvContent += headers.join(",") + "\n";
-
-    // Extracting Active/Masterlist Passengers Data
-    const activePassengers = globalPassengerData.filter(p => p.status === 'Active' || p.status !== 'Pending Payment');
-
-    if (activePassengers.length === 0) {
-      showToastNotification("No passenger data available to export.");
-      return;
-    }
-
-    activePassengers.forEach(p => {
-      const totalPaid = Number(p.total_paid) || 0;
-      const balance = Math.max(0, 250 - totalPaid);
-      const cleanName = `"${(p.name || '').replace(/"/g, '""')}"`;
-      const cleanPhone = `"${p.whatsapp || p.mobile || ''}"`;
-      const cleanPickup = `"${(p.pickup || '').replace(/"/g, '""')}"`;
-      const cleanDropoff = `"${(p.dropoff || '').replace(/"/g, '""')}"`;
-      const cleanSchedule = `"${(p.schedule || '').replace(/"/g, '""')}"`;
-      const cleanTime = `"${(p.time || '').replace(/"/g, '""')}"`;
-      const joinDate = formatDateOnly(p.join_date || p.created_at);
-
-      let statusText = "Inactive";
-      if (totalPaid >= 250) statusText = "Active (Fully Paid)";
-      else if (totalPaid > 0) statusText = "Partial Payment";
-
-      const row = [
-        p.id,
-        cleanName,
-        cleanPhone,
-        cleanPickup,
-        cleanDropoff,
-        cleanSchedule,
-        cleanTime,
-        joinDate,
-        totalPaid,
-        balance,
-        statusText
-      ];
-      csvContent += row.join(",") + "\n";
-    });
-
-  } else if (type === 'payments') {
-    // Headers para sa Payments Log
-    const headers = ["Receipt No", "Passenger ID", "Passenger Name", "Bill Month", "Amount Paid (AED)", "Collector", "Payment Date"];
-    csvContent += headers.join(",") + "\n";
-
-    if (globalPaymentData.length === 0) {
-      showToastNotification("No payment data available to export.");
-      return;
-    }
-
-    globalPaymentData.forEach(pay => {
-      const matchedPassenger = globalPassengerData.find(p => p.id === pay.passenger_id);
-      const passName = `"${(pay.passenger_name || (matchedPassenger ? matchedPassenger.name : 'N/A')).replace(/"/g, '""')}"`;
-      const billMonth = pay.billing_month ? formatMonthOnly(pay.billing_month) : 'N/A';
-      const formattedDate = pay.payment_date ? formatDateOnly(pay.payment_date) : 'N/A';
-
-      const row = [
-        pay.receipt_no,
-        pay.passenger_id,
-        passName,
-        `"${billMonth}"`,
-        pay.amount,
-        `"${pay.collector || 'Owner'}"`,
-        formattedDate
-      ];
-      csvContent += row.join(",") + "\n";
-    });
-  }
-
-  // Auto Download Trigger
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  const fileName = type === 'passengers' ? `Carlift_Passengers_Manifest_${new Date().toISOString().slice(0, 10)}.csv` : `Carlift_Payments_Report_${new Date().toISOString().slice(0, 10)}.csv`;
-  link.setAttribute("download", fileName);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  showToastNotification(`${type === 'passengers' ? 'Passenger Manifest' : 'Payments Report'} downloaded successfully!`);
+function onScanFailure(error) {
+  // Silent scan frame listener
 }
 
-/* ================= UPDATE WORKING TIME MODAL HANDLERS ================= */
-function openUpdateWorkingTimeModal(passengerId, passengerName, currentTime) {
-  pendingActionPassengerId = passengerId;
+function displayScannedPassengerModal(passenger) {
+  const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
+
+  document.getElementById('qrScanPhoto').src = passenger.photo || defaultAvatar;
+  document.getElementById('qrScanName').innerText = passenger.name;
+  document.getElementById('qrScanPhone').innerText = passenger.whatsapp || passenger.mobile;
+
+  const totalPaid = Number(passenger.total_paid) || 0;
+  const balance = Math.max(0, 250 - totalPaid);
+
+  document.getElementById('qrScanTotalPaid').innerText = `AED ${totalPaid}`;
+  document.getElementById('qrScanBalance').innerText = `AED ${balance}`;
+
+  const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === passenger.id);
+  let lastPayDateStr = passengerPayments.length > 0 ? passengerPayments[0].payment_date : (passenger.join_date || passenger.created_at);
   
-  const nameElem = document.getElementById('workingTimePassengerName');
-  const idInput = document.getElementById('modalWorkingTimePassengerId');
-  const pTimeInput = document.getElementById('modalPickupTime');
-  const rTimeInput = document.getElementById('modalReturnTime');
+  let countdownText = 'No Payment Record';
+  if (lastPayDateStr) {
+    const payDate = new Date(lastPayDateStr);
+    const today = new Date();
+    const daysPassed = Math.floor((today - payDate) / (1000 * 60 * 60 * 24));
+    const daysLeft = 25 - daysPassed;
+    countdownText = daysLeft >= 0 ? `${daysLeft} Days Remaining` : 'Expired / Overdue';
+  }
 
-  if (nameElem) nameElem.innerText = passengerName || passengerId;
-  if (idInput) idInput.value = passengerId;
+  document.getElementById('qrScanCountdown').innerText = countdownText;
 
-  if (pTimeInput) pTimeInput.value = '08:00';
-  if (rTimeInput) rTimeInput.value = '17:00';
+  const badge = document.getElementById('qrScanStatusBadge');
+  if (totalPaid >= 250) {
+    badge.className = "badge badge-active";
+    badge.innerText = "ACTIVE / FULLY PAID";
+  } else if (totalPaid > 0) {
+    badge.className = "badge";
+    badge.style.cssText = "background: #fef3c7; color: #d97706; font-weight: 700;";
+    badge.innerText = "PARTIAL PAYMENT";
+  } else {
+    badge.className = "badge";
+    badge.style.cssText = "background: #fee2e2; color: #ef4444; font-weight: 700;";
+    badge.innerText = "INACTIVE / UNPAID";
+  }
 
-  const modal = document.getElementById('updateWorkingTimeModal');
+  const modal = document.getElementById('qrResultModal');
   if (modal) modal.classList.add('active');
 }
 
-function closeUpdateWorkingTimeModal() {
-  pendingActionPassengerId = null;
-  const modal = document.getElementById('updateWorkingTimeModal');
+function closeQRResultModal() {
+  const modal = document.getElementById('qrResultModal');
   if (modal) modal.classList.remove('active');
+  startQRScanner();
 }
 
-async function confirmUpdateWorkingTime() {
-  const passengerId = pendingActionPassengerId;
-  
-  const pTimeVal = document.getElementById('modalPickupTime').value;
-  const rTimeVal = document.getElementById('modalReturnTime').value;
+/* ================= OTHER MODAL HANDLERS & HELPERS ================= */
+function formatDateOnly(dateString) {
+  if (!dateString) return 'N/A';
+  if (typeof dateString === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(dateString)) return dateString;
 
-  if (!passengerId || !pTimeVal || !rTimeVal) {
-    showToastNotification("Please select both morning and afternoon times.");
-    return;
+  let dateObj = new Date(dateString);
+  if (isNaN(dateObj.getTime())) dateObj = new Date(dateString.replace(' ', 'T'));
+  if (isNaN(dateObj.getTime())) return dateString;
+
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const year = dateObj.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+function formatMonthOnly(dateString) {
+  if (!dateString) return 'N/A';
+  let dateObj = new Date(dateString);
+  if (isNaN(dateObj.getTime())) dateObj = new Date(dateString.replace(' ', 'T'));
+  if (isNaN(dateObj.getTime())) return dateString;
+  return dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function showToastNotification(message) {
+  let alertModal = document.getElementById('customAlertModal');
+  if (!alertModal) {
+    alertModal = document.createElement('div');
+    alertModal.id = 'customAlertModal';
+    alertModal.className = 'modal-overlay';
+    alertModal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;";
+    alertModal.innerHTML = `
+      <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <div style="font-size: 38px; color: #10b981; margin-bottom: 10px;"><i class="fa-solid fa-circle-check"></i></div>
+        <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 8px;">System Notification</h3>
+        <p id="customAlertMessage" style="font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.5;"></p>
+        <button type="button" onclick="closeCustomAlertModal()" style="padding: 10px 24px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">OK</button>
+      </div>
+    `;
+    document.body.appendChild(alertModal);
   }
 
-  const formatTime = (timeStr) => {
-    if (!timeStr) return '9:30 AM';
-    const [h, m] = timeStr.split(':');
-    const hour = parseInt(h, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const formattedHour = hour % 12 || 12;
-    return `${formattedHour}:${m} ${ampm}`;
-  };
+  document.getElementById('customAlertMessage').innerText = message;
+  alertModal.classList.add('active');
+  alertModal.style.display = 'flex';
 
-  const pTime = formatTime(pTimeVal);
-  const rTime = formatTime(rTimeVal);
-  
-  const newWorkingTime = `${pTime} / ${rTime}`;
+  if (customAlertTimer) clearTimeout(customAlertTimer);
+  customAlertTimer = setTimeout(() => closeCustomAlertModal(), 3000);
+}
 
-  closeUpdateWorkingTimeModal();
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/passengers/${passengerId}/time`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ time: newWorkingTime })
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      showToastNotification(`Working time updated successfully!`);
-      loadDashboard();
-    } else {
-      const targetPassenger = globalPassengerData.find(p => p.id === passengerId);
-      if (targetPassenger) {
-        targetPassenger.time = newWorkingTime;
-      }
-      renderMasterlistTable(globalPassengerData);
-      showToastNotification(`Working time updated locally!`);
-    }
-  } catch (err) {
-    const targetPassenger = globalPassengerData.find(p => p.id === passengerId);
-    if (targetPassenger) {
-      targetPassenger.time = newWorkingTime;
-    }
-    renderMasterlistTable(globalPassengerData);
-    showToastNotification(`Working time updated successfully!`);
+function closeCustomAlertModal() {
+  const alertModal = document.getElementById('customAlertModal');
+  if (alertModal) {
+    alertModal.classList.remove('active');
+    alertModal.style.display = 'none';
   }
 }
 
-/* ================= MODERN DOUGHNUT COLLECTION ANALYTICS CHART ================= */
 function initChart(passengersData, paymentsData) {
   const canvasElem = document.getElementById('revenueChart');
   if (!canvasElem) return;
 
   const ctx = canvasElem.getContext('2d');
-
   const totalCollected = paymentsData.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   const activePassengers = passengersData.filter(p => p.status === 'Active');
   const totalExpectedRevenue = activePassengers.length * 250;
   const totalPending = Math.max(0, totalExpectedRevenue - totalCollected);
 
-  const collectedTextElem = document.getElementById('donutCollectedText');
-  const pendingTextElem = document.getElementById('donutPendingText');
-  if (collectedTextElem) collectedTextElem.innerText = `AED ${totalCollected.toLocaleString()}`;
-  if (pendingTextElem) pendingTextElem.innerText = `AED ${totalPending.toLocaleString()}`;
-
-  const chartData = [totalCollected, totalPending];
-  if (totalCollected === 0 && totalPending === 0) {
-    chartData[0] = 1;
-  }
-
-  if (revenueChartInstance) {
-    revenueChartInstance.destroy();
-  }
+  if (revenueChartInstance) revenueChartInstance.destroy();
 
   revenueChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: ['Collected Revenue', 'Pending Payments'],
       datasets: [{
-        data: chartData,
+        data: [totalCollected, totalPending],
         backgroundColor: ['#10b981', '#f59e0b'],
-        borderWidth: 0,
-        hoverOffset: 4
+        borderWidth: 0
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            boxWidth: 12,
-            font: {
-              family: 'Inter, sans-serif',
-              size: 12,
-              weight: '600'
-            },
-            color: '#334155'
-          }
-        },
-        tooltip: {
-          backgroundColor: '#0f172a',
-          titleFont: { size: 14, weight: 'bold' },
-          bodyFont: { size: 13 },
-          padding: 12,
-          callbacks: {
-            label: function(context) {
-              const labelName = context.label || '';
-              const val = context.raw;
-              if (totalCollected === 0 && totalPending === 0) {
-                return ` No active data recorded yet`;
-              }
-              return ` ${labelName}: AED ${val.toLocaleString()}`;
-            }
-          }
-        }
-      },
       cutout: '70%'
     }
   });
 }
 
-/* ================= OWNER LOGOUT SYSTEM ================= */
 function openLogoutModal() {
   const modal = document.getElementById('logoutModal');
   if (modal) modal.style.display = 'flex';
