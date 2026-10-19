@@ -1,4 +1,3 @@
-// Global variable para sa photo base64
 let photoBase64 = '';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Siguraduhing tama ang default sa pag-load ng page (Morning: 00:00, Afternoon: 12:00)
   const pTimeInput = document.getElementById('pickupTime');
   const rTimeInput = document.getElementById('returnTime');
   if (pTimeInput && !pTimeInput.value) pTimeInput.value = '00:00';
@@ -61,7 +59,6 @@ async function sendChatMessage() {
   const message = inputField.value.trim();
   if (!message) return;
 
-  // Ipakita ang chat bubble ng User
   const userBubble = document.createElement('div');
   userBubble.className = 'msg-user';
   userBubble.innerHTML = `<span><b>Ikaw:</b> ${message}</span>`;
@@ -78,7 +75,6 @@ async function sendChatMessage() {
     });
 
     const data = await response.json();
-
     const aiBubble = document.createElement('div');
     aiBubble.className = 'msg-ai';
 
@@ -89,7 +85,6 @@ async function sendChatMessage() {
     }
 
     chatBox.appendChild(aiBubble);
-
   } catch (error) {
     console.error('Chat Error:', error);
     const errorBubble = document.createElement('div');
@@ -104,8 +99,6 @@ async function sendChatMessage() {
 // ==========================================
 // YES / NO MODAL & SUBMISSION HANDLERS
 // ==========================================
-
-// 1. Kapag pinindot ang "Submit Registration" button
 function openConfirmModal() {
   const form = document.getElementById('regForm');
   if (form.checkValidity()) {
@@ -116,13 +109,25 @@ function openConfirmModal() {
   }
 }
 
-// 2. Kapag pinindot ang "No, Review First"
 function closeConfirmModal() {
   const modal = document.getElementById('confirmModal');
   if (modal) modal.style.display = 'none';
 }
 
-// 3. Kapag pinindot ang "Yes, Submit Now!" sa modal
+// QR Code Modal Handlers
+function openQrModal() {
+  const qrModal = document.getElementById('qrModal');
+  if (qrModal) qrModal.style.display = 'flex';
+}
+
+function closeQrModal() {
+  const qrModal = document.getElementById('qrModal');
+  if (qrModal) qrModal.style.display = 'none';
+}
+
+// ==========================================
+// PROCEED REGISTRATION & GENERATE QR CODE
+// ==========================================
 async function proceedRegistration() {
   closeConfirmModal();
 
@@ -143,6 +148,7 @@ async function proceedRegistration() {
     return;
   }
 
+  const nameVal = document.getElementById('name').value.trim();
   const whatsappNumber = '+971 ' + whatsappInput;
 
   const formatTime = (timeStr) => {
@@ -158,13 +164,11 @@ async function proceedRegistration() {
   const rTime = formatTime(document.getElementById('returnTime').value);
   const combinedSchedule = `${selectedDays.join(', ')} | ${pTime} Pickup / ${rTime} Return`;
 
-  // Pag-format ng Join Date patungong DD-MM-YYYY (e.g. 07-09-2026)
   const rawJoinDate = document.getElementById('joinDate').value;
   let formattedJoinDate = rawJoinDate;
-
   if (rawJoinDate) {
     if (rawJoinDate.includes('-') && rawJoinDate.indexOf('-') === 4) {
-      const parts = rawJoinDate.split('-'); // [YYYY, MM, DD]
+      const parts = rawJoinDate.split('-');
       formattedJoinDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
     } else if (rawJoinDate.includes('/')) {
       formattedJoinDate = rawJoinDate.replace(/\//g, '-');
@@ -172,7 +176,7 @@ async function proceedRegistration() {
   }
 
   const data = {
-    name: document.getElementById('name').value.trim(),
+    name: nameVal,
     photo: photoBase64,
     mobile: whatsappNumber,
     whatsapp: whatsappNumber,
@@ -191,15 +195,36 @@ async function proceedRegistration() {
 
     const result = await response.json();
     if (result.success) {
-      // Itago ang form at ipakita ang success card
+      // Itago ang form at ipakita ang status card
       document.getElementById('regForm').style.display = 'none';
       const statusResult = document.getElementById('statusResult');
       statusResult.style.display = 'block';
 
       // ==========================================
-      // AUTOMATIC RESET TIMER (3 SECONDS)
+      // GENERATE DYNAMIC QR CODE FOR THIS USER
       // ==========================================
-      let countdown = 3;
+      const qrContainer = document.getElementById('qrcode');
+      qrContainer.innerHTML = ""; // Linisin muna kung meron man lumang QR
+
+      // Ang laman ng QR ay ang Pangalan at WhatsApp para madaling ma-scan ng driver
+      const qrTextContent = `Name: ${nameVal} | WhatsApp: ${whatsappNumber} | Status: PENDING PAYMENT`;
+      
+      new QRCode(qrContainer, {
+        text: qrTextContent,
+        width: 160,
+        height: 160,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      document.getElementById('qrDetailsText').textContent = `${nameVal} (${whatsappNumber})`;
+
+      // Awtomatikong buksan ang QR code modal para makita agad ng pasahero
+      openQrModal();
+
+      // Automated Timer para bumalik sa form
+      let countdown = 10; // Ginawa nating 10 seconds para may sapat silang oras makita ang QR o i-close ito
       const timerText = document.getElementById('resetTimerText');
       if (timerText) timerText.textContent = `Returning to form in ${countdown} seconds...`;
 
@@ -210,6 +235,7 @@ async function proceedRegistration() {
         }
         if (countdown <= 0) {
           clearInterval(countdownInterval);
+          closeQrModal();
           resetRegistrationForm();
         }
       }, 1000);
@@ -222,7 +248,6 @@ async function proceedRegistration() {
   }
 }
 
-// Function para ibalik ang form sa malinis at bagong estado
 function resetRegistrationForm() {
   const form = document.getElementById('regForm');
   const statusResult = document.getElementById('statusResult');

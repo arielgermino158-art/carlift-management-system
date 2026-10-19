@@ -12,6 +12,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/index.css" />
 
+  <!-- QR Code Generator Library (qrcode.js) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <style>
     /* Styling para sa Back to Homepage button sa baba */
     .btn-back-home {
@@ -131,7 +134,7 @@
             </div>
           </div>
 
-          <!-- Join Date Field (Added before Submit Button) -->
+          <!-- Join Date Field -->
           <div class="form-group">
             <label>Join Date (Target Start Date) *</label>
             <input type="date" id="joinDate" required />
@@ -139,14 +142,14 @@
 
           <button type="button" onclick="openConfirmModal()" class="btn-submit">Submit Registration</button>
           
-          <!-- BACK TO HOMEPAGE BUTTON (ILALIM NG SUBMIT) -->
+          <!-- BACK TO HOMEPAGE BUTTON -->
           <a href="homepage.html" class="btn-back-home">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             <span>Back to Homepage</span>
           </a>
         </form>
 
-        <!-- Confirmation Screen -->
+        <!-- Confirmation Screen (Pangalawang Screen) -->
         <div id="statusResult" class="status-card" style="display: none;">
           <div class="icon-success">✓</div>
           <h3 style="font-size: 18px; color: #0f172a;">Registration Submitted!</h3>
@@ -160,6 +163,12 @@
             <p>• Payment Method: <b>CASH ONLY</b></p>
             <p style="margin-top: 6px;">Please submit payment to the carlift owner/driver to activate your account.</p>
           </div>
+          
+          <!-- Button para ipakita ang QR Code Modal (Pangatlong Modal) -->
+          <button type="button" onclick="openQrModal()" style="width: 100%; margin-top: 14px; padding: 12px; background: #0f172a; color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;">
+            📱 View My Personal QR Code
+          </button>
+
           <!-- Timer info text -->
           <p id="resetTimerText" style="font-size: 12px; color: #64748b; margin-top: 12px; text-align: center; font-style: italic;">Returning to form in 3 seconds...</p>
         </div>
@@ -167,7 +176,7 @@
     </div>
   </div>
 
-  <!-- YES / NO CONFIRMATION MODAL POPUP -->
+  <!-- YES / NO CONFIRMATION MODAL (Unang Modal) -->
   <div class="modal-overlay" id="confirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
     <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
       <div style="font-size: 40px; margin-bottom: 10px;">📋</div>
@@ -177,6 +186,21 @@
         <button type="button" onclick="closeConfirmModal()" style="padding: 10px 20px; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">No, Review First</button>
         <button type="button" onclick="proceedRegistration()" style="padding: 10px 20px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Yes, Submit Now!</button>
       </div>
+    </div>
+  </div>
+
+  <!-- PANGATLONG MODAL: QR CODE MODAL -->
+  <div class="modal-overlay" id="qrModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 20px; max-width: 340px; width: 90%; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.25);">
+      <h3 style="font-size: 16px; color: #0f172a; font-weight: 800; margin-bottom: 4px;">Your Personal QR Code</h3>
+      <p style="font-size: 11px; color: #64748b; margin-bottom: 16px;">Ipakita ito sa driver o i-screenshot para sa verification.</p>
+      
+      <!-- QR Code Container -->
+      <div id="qrcode" style="display: flex; justify-content: center; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px;"></div>
+
+      <div id="qrDetailsText" style="font-size: 12px; color: #334155; font-weight: 600; margin-bottom: 16px;"></div>
+
+      <button type="button" onclick="closeQrModal()" style="width: 100%; padding: 10px; background: #2563eb; color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;">I-close ang QR</button>
     </div>
   </div>
 
