@@ -1,4 +1,4 @@
-// server.js (Carlift Management System Server - Gemini + Supabase Powered)
+// server.js (Carlift Management System Server - Gemini + Supabase Powered & Secured)
 
 require('dotenv').config();
 
@@ -6,29 +6,67 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { GoogleGenAI } = require('@google/genai');
 const db = require('./database'); // PostgreSQL pool mula sa database.js
 
 const app = express();
-const SECRET_KEY = 'carlift_secret_admin_key';
+const SECRET_KEY = process.env.JWT_SECRET || 'carlift_secret_admin_key';
 
+// 1. Security Headers (Helmet) & CORS
+app.use(helmet({
+  contentSecurityPolicy: false, // Opsyonal para payagan ang external CDNs tulad ng Chart.js at FontAwesome
+}));
 app.use(cors());
 
 // Limit for Base64 Photo Uploads (50MB)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// 2. Rate Limiter para iwas spam / brute force sa API routes
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 200, // Hanggang 200 requests per IP
+  message: { success: false, message: 'Masyadong maraming request, subukan mamaya.' }
+});
+app.use('/api/', apiLimiter);
+
 // ==========================================
-// STATIC FILES MIDDLEWARE (CSS, JS, HTML)
+// STATIC FILES MIDDLEWARE (Public assets lang)
 // ==========================================
-app.use(express.static(__dirname, { index: false }));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // ==========================================
 // ROOT ROUTE: HOME PAGE AS DEFAULT
 // ==========================================
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'homepage.html'));
+  res.sendFile(path.join(__dirname, 'public', 'homepage.html'));
 });
+
+// ==========================================
+// AUTHENTICATION MIDDLEWARE PARA SA ADMIN
+// ==========================================
+function verifyAdminToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader) {
+    return res.status(401).json({ success: false, message: 'Access Denied. No token provided.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const verified = jwt.verify(token, SECRET_KEY);
+    if (verified.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Unauthorized role.' });
+    }
+    req.admin = verified;
+    next();
+  } catch (err) {
+    return res.status(403).json({ success: false, message: 'Invalid or expired token.' });
+  }
+}
 
 // ==========================================
 // 0. ADMIN CREDENTIALS & RECOVERY CONFIG
@@ -68,6 +106,14 @@ app.post('/api/admin/reset-password', (req, res) => {
 
   console.log('✅ Admin Credentials Updated:', adminCredentials);
   return res.json({ success: true, token, message: 'Password reset successful!' });
+});
+
+// ==========================================
+// SECURED ADMIN PAGE ROUTE (Nakatago sa private folder)
+// ==========================================
+app.get('/secure-admin-portal', (req, res) => {
+  // I-serve ang hinarang na admin.html mula sa private folder
+  res.sendFile(path.join(__dirname, 'private', 'admin.html'));
 });
 
 // ==========================================
@@ -173,9 +219,9 @@ app.post('/api/register', async (req, res) => {
 });
 
 // ==========================================
-// 2. ADMIN DASHBOARD STATS
+// 2. ADMIN DASHBOARD STATS (Protected by JWT)
 // ==========================================
-app.get('/api/dashboard-stats', async (req, res) => {
+app.get('/api/dashboard-stats', verifyAdminToken, async (req, res) => {
   try {
     await db.query(`
       UPDATE passengers 
@@ -208,9 +254,9 @@ app.get('/api/dashboard-stats', async (req, res) => {
 });
 
 // ==========================================
-// 3. GET ALL PASSENGERS LIST
+// 3. GET ALL PASSENGERS LIST (Protected by JWT)
 // ==========================================
-app.get('/api/passengers', async (req, res) => {
+app.get('/api/passengers', verifyAdminToken, async (req, res) => {
   try {
     const passengersWithBalance = await fetchPassengersWithBalance();
     res.json({
@@ -223,7 +269,7 @@ app.get('/api/passengers', async (req, res) => {
   }
 });
 
-app.get('/api/admin/passengers', async (req, res) => {
+app.get('/api/admin/passengers', verifyAdminToken, async (req, res) => {
   try {
     const passengersWithBalance = await fetchPassengersWithBalance();
     res.json({
@@ -237,9 +283,9 @@ app.get('/api/admin/passengers', async (req, res) => {
 });
 
 // ==========================================
-// 3.1 PASSENGER STATUS UPDATE
+// 3.1 PASSENGER STATUS UPDATE (Protected)
 // ==========================================
-app.put('/api/passengers/:id/status', async (req, res) => {
+app.put('/api/passengers/:id/status', verifyAdminToken, async (req, res) => {
   const passengerId = req.params.id;
   const { status } = req.body;
 
@@ -258,9 +304,9 @@ app.put('/api/passengers/:id/status', async (req, res) => {
 });
 
 // ==========================================
-// 3.2 PASSENGER WORKING TIME UPDATE
+// 3.2 PASSENGER WORKING TIME UPDATE (Protected)
 // ==========================================
-app.put('/api/passengers/:id/time', async (req, res) => {
+app.put('/api/passengers/:id/time', verifyAdminToken, async (req, res) => {
   const passengerId = req.params.id;
   const { time } = req.body;
 
@@ -279,9 +325,9 @@ app.put('/api/passengers/:id/time', async (req, res) => {
 });
 
 // ==========================================
-// 4. RECORD CASH PAYMENT & ACTIVATE STATUS
+// 4. RECORD CASH PAYMENT & ACTIVATE STATUS (Protected)
 // ==========================================
-app.post('/api/record-payment', async (req, res) => {
+app.post('/api/record-payment', verifyAdminToken, async (req, res) => {
   const { passengerId, amount, collector, payment_date, billing_month } = req.body;
   const receiptNo = `RCP-${Date.now().toString().slice(-6)}`;
   
@@ -319,9 +365,9 @@ app.post('/api/record-payment', async (req, res) => {
 });
 
 // ==========================================
-// 5. GET ALL PAYMENTS / RECEIPTS HISTORY
+// 5. GET ALL PAYMENTS / RECEIPTS HISTORY (Protected)
 // ==========================================
-app.get('/api/payments', async (req, res) => {
+app.get('/api/payments', verifyAdminToken, async (req, res) => {
   try {
     const paymentsRes = await db.query(`
       SELECT payments.*, passengers.name as passenger_name 
@@ -340,9 +386,9 @@ app.get('/api/payments', async (req, res) => {
 });
 
 // ==========================================
-// 6. EXPORT REPORTS & PASSENGERS WITH BALANCE TRACKING
+// 6. EXPORT REPORTS & PASSENGERS WITH BALANCE TRACKING (Protected)
 // ==========================================
-app.get('/api/reports/summary', async (req, res) => {
+app.get('/api/reports/summary', verifyAdminToken, async (req, res) => {
   try {
     const passengersWithBalance = await fetchPassengersWithBalance();
     
@@ -372,9 +418,9 @@ app.get('/api/reports/summary', async (req, res) => {
 });
 
 // ==========================================
-// 7. PERMANENT DELETE PASSENGER ENDPOINT
+// 7. PERMANENT DELETE PASSENGER ENDPOINT (Protected)
 // ==========================================
-app.delete('/api/passengers/:id', async (req, res) => {
+app.delete('/api/passengers/:id', verifyAdminToken, async (req, res) => {
   const passengerId = req.params.id;
 
   try {
@@ -394,6 +440,11 @@ app.delete('/api/passengers/:id', async (req, res) => {
   }
 });
 
+// Fallback 404 para sa mga hindi kilalang API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ success: false, message: 'API route not found.' });
+});
+
 // Start Server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Carlift Server running on port ${PORT} (Gemini + Supabase Powered)`));
+app.listen(PORT, () => console.log(`🚀 Carlift Server running on port ${PORT} (Gemini + Supabase Powered & Secured)`));
