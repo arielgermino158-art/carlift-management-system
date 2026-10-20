@@ -78,166 +78,52 @@ body {
 }
 
 .nav-menu {
-  list-style: none !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  overflow-y: auto !important;
-  max-height: calc(100vh - 220px) !important;
-  max-height: calc(100dvh - 220px) !important;
-  padding-right: 4px !important;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+  padding-right: 4px;
 }
 
 .nav-item {
-  padding: 14px 18px !important;
-  border-radius: 12px !important;
-  color: #94a3b8 !important;
-  cursor: pointer !important;
-  font-weight: 700 !important;
-  font-size: 15px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 14px !important;
-  transition: all 0.2s ease !important;
-  position: static !important;
-  height: auto !important;
-  min-height: 48px !important;
-  box-sizing: border-box !important;
+  padding: 14px 18px;
+  border-radius: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  transition: all 0.2s ease;
+  position: relative;
+  min-height: 48px;
 }
 
 .nav-item span {
-  display: flex !important;
-  align-items: center !important;
-  gap: 14px !important;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .nav-item i {
-  font-size: 18px !important;
-  width: 22px !important;
-  text-align: center !important;
+  font-size: 18px;
+  width: 22px;
+  text-align: center;
 }
 
 .nav-item:hover {
-  background-color: var(--sidebar-hover) !important;
-  color: #fff !important;
+  background-color: var(--sidebar-hover);
+  color: #fff;
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35) !important;
-}
-
-/* ================= DROPDOWN CONTAINER & SUBMENU STYLING ================= */
-.nav-dropdown-container {
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100% !important;
-  position: static !important;
-  height: auto !important;
-}
-
-.nav-item-header {
-  padding: 14px 18px !important;
-  width: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 14px !important;
-  border-radius: 12px !important;
-  color: #94a3b8 !important;
-  font-weight: 700 !important;
-  font-size: 15px !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  user-select: none !important;
-  box-sizing: border-box !important;
-  min-height: 48px !important;
-}
-
-.nav-item-header span {
-  display: flex !important;
-  align-items: center !important;
-  gap: 14px !important;
-}
-
-.nav-item-header i.fa-users {
-  font-size: 18px !important;
-  width: 22px !important;
-  text-align: center !important;
-}
-
-.nav-item-header:hover {
-  background-color: var(--sidebar-hover) !important;
-  color: #fff !important;
-}
-
-.nav-dropdown-container.active .nav-item-header {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35) !important;
-}
-
-.nav-item-header .chevron-icon {
-  font-size: 12px !important;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  margin-left: auto !important;
-}
-
-.nav-dropdown-container.open .chevron-icon {
-  transform: rotate(180deg) !important;
-}
-
-/* SUBMENU LIST (ACCORDION FLOW) */
-.submenu-list {
-  display: none !important;
-  list-style: none !important;
-  padding: 4px 0 4px 18px !important;
-  margin: 0 !important;
-  position: static !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-.nav-dropdown-container.open .submenu-list {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 4px !important;
-  margin-top: 4px !important;
-  margin-bottom: 4px !important;
-}
-
-.submenu-item {
-  padding: 10px 14px !important;
-  font-size: 13.5px !important;
-  font-weight: 600 !important;
-  color: #94a3b8 !important;
-  border-radius: 8px !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  white-space: nowrap !important;
-  box-sizing: border-box !important;
-}
-
-.submenu-item:hover {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
-.submenu-item.active {
-  color: #38bdf8 !important;
-  background: rgba(56, 189, 248, 0.15) !important;
-  font-weight: 700 !important;
-}
-
-.submenu-item i {
-  font-size: 14px !important;
-  width: 18px !important;
-  text-align: center !important;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
 }
 
 .fb-badge,
@@ -1215,15 +1101,6 @@ tr:hover {
   .modal-footer button {
     flex: 1;
     min-height: 44px;
-  }
-
-  .submenu-list {
-    padding-left: 12px;
-  }
-
-  .submenu-item {
-    font-size: 12.5px;
-    padding: 8px 10px;
   }
 }
 

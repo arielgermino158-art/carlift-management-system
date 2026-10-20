@@ -15,9 +15,6 @@ let currentPaymentPage = 1;
 let currentReportPage = 1;
 let currentPendingPage = 1;
 
-// CURRENT PAYMENT FILTER FOR PASSENGERS LIST: 'all', 'fully-paid', 'partial', 'unpaid'
-let currentPassengerPaymentFilter = 'all';
-
 // TEMPORARY ID STORAGE PARA SA MODALS
 let pendingActionPassengerId = null;
 let currentDeleteContext = 'passenger'; // 'passenger' or 'approval'
@@ -100,63 +97,10 @@ function toggleMobileSidebar() {
   }
 }
 
-/* ================= DROPDOWN SUBMENU LOGIC FOR PASSENGERS ================= */
-function togglePassengerDropdown(e) {
-  if (e) e.stopPropagation();
-  const dropdown = document.getElementById('passengerDropdown');
-  if (dropdown) {
-    dropdown.classList.toggle('open');
-  }
-  // Lipat agad sa Passengers section at i-filter sa ALL kung hindi pa naka-open
-  switchTab('passengers', null);
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  if (dropdown) dropdown.classList.add('active');
-}
-
-function filterPassengersByPaymentStatus(filterType, e) {
-  if (e) e.stopPropagation();
-
-  currentPassengerPaymentFilter = filterType;
-  currentPassengerPage = 1;
-
-  // Siguraduhing naka-open ang dropdown at active ang nav item
-  const dropdown = document.getElementById('passengerDropdown');
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  if (dropdown) {
-    dropdown.classList.add('open');
-    dropdown.classList.add('active');
-  }
-
-  // Active class indicator sa sub-items
-  document.querySelectorAll('.submenu-item').forEach(item => item.classList.remove('active'));
-  const activeSub = document.getElementById(`sub-${filterType}`);
-  if (activeSub) activeSub.classList.add('active');
-
-  // I-switch ang view patungong Passengers
-  switchTab('passengers', null);
-
-  // Update Table Title
-  const titleElem = document.getElementById('passengerDirectoryTitle');
-  if (titleElem) {
-    if (filterType === 'fully-paid') titleElem.innerText = 'Passengers List - Fully Paid';
-    else if (filterType === 'partial') titleElem.innerText = 'Passengers List - Partial Paid';
-    else if (filterType === 'unpaid') titleElem.innerText = 'Passengers List - Unpaid';
-    else titleElem.innerText = 'Passenger Directory (All)';
-  }
-
-  // Re-render Passenger Table with Filter
-  renderMasterlistTable(globalPassengerData);
-}
-
 // TAB NAVIGATION
 function switchTab(tabName, event) {
   document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
-  
-  if (tabName !== 'passengers') {
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    const dropdown = document.getElementById('passengerDropdown');
-    if (dropdown) dropdown.classList.remove('open');
-  }
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
   const targetSection = document.getElementById(`view-${tabName}`);
   if (targetSection) targetSection.classList.add('active');
@@ -624,7 +568,7 @@ function closeCustomAlertModal() {
   }
 }
 
-/* ================= PAGINATED PASSENGERS TABLE WITH FILTER BY PAYMENT STATUS ================= */
+/* ================= PAGINATED PASSENGERS TABLE (WITH 25-DAY CYCLE LOGIC & COUNTDOWN) ================= */
 function filterPassengers() {
   currentPassengerPage = 1;
   renderMasterlistTable(globalPassengerData);
@@ -640,44 +584,6 @@ function renderMasterlistTable(data) {
   const searchQuery = searchElem ? searchElem.value.toLowerCase() : '';
   
   let displayData = data.filter(p => p.status === 'Active' || p.status !== 'Pending Payment');
-
-  // Filter ayon sa napiling Sub-Menu Status Filter
-  displayData = displayData.filter(p => {
-    const rawTotalPaid = Number(p.total_paid) || 0;
-
-    // Check 25-Day Cycle validity
-    const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
-    let lastPayDateStr = null;
-    if (passengerPayments.length > 0) {
-      passengerPayments.sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
-      lastPayDateStr = passengerPayments[0].payment_date;
-    }
-    if (!lastPayDateStr) {
-      lastPayDateStr = p.last_payment_date || p.join_date || p.created_at;
-    }
-
-    let isExpired = false;
-    if (lastPayDateStr) {
-      const payDate = new Date(lastPayDateStr);
-      const today = new Date();
-      const diffTime = today - payDate;
-      const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      if ((25 - daysPassed) < 0) isExpired = true;
-    } else {
-      isExpired = true;
-    }
-
-    const effectivePaid = isExpired ? 0 : rawTotalPaid;
-
-    if (currentPassengerPaymentFilter === 'fully-paid') {
-      return effectivePaid >= 250;
-    } else if (currentPassengerPaymentFilter === 'partial') {
-      return effectivePaid > 0 && effectivePaid < 250;
-    } else if (currentPassengerPaymentFilter === 'unpaid') {
-      return effectivePaid === 0;
-    }
-    return true; // 'all'
-  });
 
   if (searchQuery) {
     displayData = displayData.filter(p => 
@@ -705,7 +611,7 @@ function renderMasterlistTable(data) {
   masterBody.innerHTML = '';
 
   if (paginatedData.length === 0) {
-    masterBody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 30px; color:#94a3b8; font-weight:700;">No matching passengers found for this filter.</td></tr>';
+    masterBody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 30px; color:#94a3b8; font-weight:700;">No active passengers found.</td></tr>';
   } else {
     paginatedData.forEach(p => {
       const cleanPhone = p.whatsapp ? p.whatsapp.replace(/[^0-9]/g, '') : '';

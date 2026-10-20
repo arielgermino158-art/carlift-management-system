@@ -37,29 +37,9 @@
         <li class="nav-item active" onclick="switchTab('dashboard', event)">
           <span><i class="fa-solid fa-gauge-high"></i> Dashboard</span>
         </li>
-        
-        <!-- DROPDOWN PASSENGER LIST CONTAINER -->
-        <li class="nav-dropdown-container" id="passengerDropdown">
-          <div class="nav-item-header" onclick="togglePassengerDropdown(event)">
-            <span><i class="fa-solid fa-users"></i> Passengers List</span>
-            <i class="fa-solid fa-chevron-down chevron-icon"></i>
-          </div>
-          <ul class="submenu-list">
-            <li class="submenu-item active" id="sub-all" onclick="filterPassengersByPaymentStatus('all', event)">
-              <i class="fa-solid fa-list-ul"></i> All Passengers
-            </li>
-            <li class="submenu-item" id="sub-fully-paid" onclick="filterPassengersByPaymentStatus('fully-paid', event)">
-              <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Passenger Fully Paid
-            </li>
-            <li class="submenu-item" id="sub-partial" onclick="filterPassengersByPaymentStatus('partial', event)">
-              <i class="fa-solid fa-clock" style="color: #f59e0b;"></i> Passenger Partial
-            </li>
-            <li class="submenu-item" id="sub-unpaid" onclick="filterPassengersByPaymentStatus('unpaid', event)">
-              <i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Passenger Unpaid
-            </li>
-          </ul>
+        <li class="nav-item" onclick="switchTab('passengers', event)">
+          <span><i class="fa-solid fa-users"></i> Passengers List</span>
         </li>
-
         <li class="nav-item" onclick="switchTab('payments', event)">
           <span><i class="fa-solid fa-receipt"></i> Payment History</span>
         </li>
@@ -236,7 +216,7 @@
       <section id="view-passengers" class="view-section">
         <div class="table-card">
           <div class="table-header">
-            <div class="table-title"><i class="fa-solid fa-users"></i> <span id="passengerDirectoryTitle">Passenger Directory</span></div>
+            <div class="table-title"><i class="fa-solid fa-users"></i> Passenger Directory</div>
             <div class="search-box">
               <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
               <input type="text" id="passengerSearch" placeholder="Filter by name, route, or phone..." onkeyup="filterPassengers()">
@@ -419,7 +399,7 @@
         <div class="table-card" style="padding: 24px; text-align: center;">
           <div style="margin-bottom: 20px;">
             <h3 style="font-size: 18px; font-weight: 800; color: #0f172a;"><i class="fa-solid fa-qrcode" style="color: #2563eb;"></i> Passenger QR Code Verification Scanner</h3>
-            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">I-point ang camera ng phone/laptop sa QR Code ng pasahero para ma-verify agad ang balance at status.</p>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Point the phone or laptop camera at the passenger's QR code to immediately verify their balance and status.</p>
           </div>
 
           <!-- Scanner Viewport Container -->
