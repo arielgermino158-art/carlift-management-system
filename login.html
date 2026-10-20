@@ -88,7 +88,7 @@
         <span id="btnText">Sign In to Dashboard</span>
       </button>
 
-      <!-- BACK TO HOMEPAGE BUTTON (NASA ILALIM NG SIGN IN TO DASHBOARD) -->
+      <!-- BACK TO HOMEPAGE BUTTON -->
       <a href="homepage.html" class="btn-back-home">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
         <span>Back to Homepage</span>
@@ -236,7 +236,8 @@
 
         if (res.ok && data.success) {
           localStorage.setItem('carlift_admin_token', data.token);
-          window.location.href = 'admin.html';
+          // 👉 INAYOS KO DITO: Ididiretso na sa secured route natin
+          window.location.href = '/secure-admin-portal';
         } else {
           showAlert(data.message || "Invalid Admin Credentials", 'error', true);
         }
@@ -280,7 +281,8 @@
             localStorage.setItem('carlift_admin_token', data.token);
           }
           setTimeout(() => {
-            window.location.href = "/secure-admin-portal";
+            // 👉 INAYOS KO RIN DITO: Ididiretso na rin sa secured route natin
+            window.location.href = '/secure-admin-portal';
           }, 1500);
         } else {
           showAlert(data.message || "Invalid Recovery PIN or Username", 'error', true);
