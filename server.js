@@ -440,8 +440,8 @@ app.delete('/api/passengers/:id', verifyAdminToken, async (req, res) => {
   }
 });
 
-// Fallback 404 para sa mga hindi kilalang API routes
-app.use('/api/*', (req, res) => {
+// Fallback 404 para sa mga hindi kilalang API routes (Express 5 Compatible Syntax)
+app.use('/api/*splat', (req, res) => {
   res.status(404).json({ success: false, message: 'API route not found.' });
 });
 
