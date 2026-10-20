@@ -66,30 +66,62 @@
             transform: translate(0, 0) scale(1);
         }
 
-        /* STYLING FOR GOOGLE TRANSLATE WIDGET */
+        /* --- CUSTOM ULTRA-RESPONSIVE GOOGLE TRANSLATE STYLING --- */
         #google_translate_element {
             display: inline-block;
+            position: relative;
         }
         .goog-te-gadget {
             font-family: 'Inter', sans-serif !important;
             color: transparent !important;
+            font-size: 0 !important;
         }
         .goog-te-gadget select {
-            background-color: #131d31 !important;
-            color: #f1f5f9 !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            border-radius: 0.75rem !important;
-            padding: 0.4rem 0.6rem !important;
-            font-size: 0.75rem !important;
+            background-color: transparent !important;
+            color: #cbd5e1 !important; /* text-slate-300 */
+            border: none !important;
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.75rem !important; /* text-xs sa mobile */
+            font-weight: 600 !important;
             outline: none !important;
             cursor: pointer !important;
+            border-radius: 0.75rem !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            width: 100% !important;
         }
-        /* Itago ang Google branding banner para malinis ang UI */
-        .goog-te-banner-frame.skiptranslate, .goog-te-gadget span {
+        @media (min-width: 640px) {
+            .goog-te-gadget select {
+                font-size: 0.875rem !important; /* text-sm sa desktop */
+                padding: 0.5rem 1rem !important;
+            }
+        }
+        .goog-te-gadget select:hover {
+            color: #ffffff !important;
+        }
+        /* Itago ang hindi kailangang Google banner / logo elements */
+        .goog-te-banner-frame.skiptranslate, 
+        .goog-te-gadget span,
+        .goog-logo-link {
             display: none !important;
         }
         body {
             top: 0px !important;
+        }
+        /* Custom wrapper frame na kamukha ng dating Login Button */
+        .translate-btn-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(30, 41, 59, 0.6); /* Slate-800 translucent */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem; /* rounded-xl */
+            transition: all 0.2s ease-in-out;
+        }
+        .translate-btn-wrapper:hover {
+            border-color: rgba(59, 130, 246, 0.5); /* Blue-500 hover */
+            background-color: rgba(30, 41, 59, 0.9);
         }
     </style>
 </head>
@@ -119,13 +151,15 @@
                 <a href="#contact" class="nav-link hover:text-blue-400 transition py-1 relative">Contact</a>
             </nav>
 
-            <!-- Action Buttons (Google Translate Selector + Register) -->
+            <!-- Action Buttons (Custom Language Selector + Register) -->
             <div class="flex items-center space-x-2 sm:space-x-3">
                 
-                <!-- AUTO TRANSLATE DROPDOWN SELECTOR (Sa dating pwesto ng Login) -->
-                <div id="google_translate_element"></div>
+                <!-- CUSTOM ULTRA-RESPONSIVE TRANSLATE BUTTON (Dating Pwesto ng Login) -->
+                <div class="translate-btn-wrapper">
+                    <div id="google_translate_element"></div>
+                </div>
 
-                <a href="index.html" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-lg shadow-blue-600/35">Register</a>
+                <a href="index.html" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-lg shadow-blue-600/35 shrink-0">Register</a>
                 
                 <!-- Mobile Menu Button -->
                 <button id="mobileMenuBtn" class="lg:hidden p-2 text-slate-300 hover:text-white focus:outline-none cursor-pointer">
