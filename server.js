@@ -1,4 +1,4 @@
-// server.js (Carlift Management System Server - Secured & QR Ready)
+// server.js (Carlift Management System Server - Secured & Homepage Ready)
 
 require('dotenv').config();
 
@@ -16,7 +16,7 @@ const SECRET_KEY = process.env.JWT_SECRET || 'carlift_secret_admin_key';
 
 // 1. Security Headers (Helmet) & CORS
 app.use(helmet({
-  contentSecurityPolicy: false, // Opsyonal para payagan ang external CDNs tulad ng Chart.js at FontAwesome
+  contentSecurityPolicy: false,
 }));
 app.use(cors());
 
@@ -24,10 +24,10 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// 2. Rate Limiter para iwas spam / brute force sa API routes
+// 2. Rate Limiter para sa API routes
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 200, // Hanggang 200 requests per IP
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: { success: false, message: 'Masyadong maraming request, subukan mamaya.' }
 });
 app.use('/api/', apiLimiter);
@@ -44,7 +44,7 @@ app.use((req, res, next) => {
 }, express.static(__dirname, { index: false }));
 
 // ==========================================
-// ROOT ROUTE: HOMEPAGE VIA QR CODE
+// ROOT ROUTE: HOMEPAGE VIA QR CODE (homepage.html)
 // ==========================================
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'homepage.html'));
