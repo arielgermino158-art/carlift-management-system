@@ -65,6 +65,32 @@
             opacity: 1;
             transform: translate(0, 0) scale(1);
         }
+
+        /* STYLING FOR GOOGLE TRANSLATE WIDGET */
+        #google_translate_element {
+            display: inline-block;
+        }
+        .goog-te-gadget {
+            font-family: 'Inter', sans-serif !important;
+            color: transparent !important;
+        }
+        .goog-te-gadget select {
+            background-color: #131d31 !important;
+            color: #f1f5f9 !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 0.75rem !important;
+            padding: 0.4rem 0.6rem !important;
+            font-size: 0.75rem !important;
+            outline: none !important;
+            cursor: pointer !important;
+        }
+        /* Itago ang Google branding banner para malinis ang UI */
+        .goog-te-banner-frame.skiptranslate, .goog-te-gadget span {
+            display: none !important;
+        }
+        body {
+            top: 0px !important;
+        }
     </style>
 </head>
 <body class="bg-darkBg text-slate-100 antialiased selection:bg-blue-500 selection:text-white">
@@ -73,7 +99,7 @@
     <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             
-            <!-- SECRET ADMIN BUTTON: MS Logo (Pag pinindot, bubukas ang Admin Modal nang patago) -->
+            <!-- SECRET ADMIN BUTTON: MS Logo (Pag pinindot, bubukas ang Admin Modal) -->
             <div class="flex items-center space-x-3 cursor-pointer group" onclick="openAdminModal()" title="System Portal">
                 <img src="images/ms-logo.jpg" alt="MS Logo" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-500/20 shrink-0 group-hover:border-blue-400 transition">
                 <div class="flex flex-col">
@@ -93,8 +119,12 @@
                 <a href="#contact" class="nav-link hover:text-blue-400 transition py-1 relative">Contact</a>
             </nav>
 
-            <!-- Action Buttons (Inalis na ang Login button sa tabi, Register na lang ang natira) -->
+            <!-- Action Buttons (Google Translate Selector + Register) -->
             <div class="flex items-center space-x-2 sm:space-x-3">
+                
+                <!-- AUTO TRANSLATE DROPDOWN SELECTOR (Sa dating pwesto ng Login) -->
+                <div id="google_translate_element"></div>
+
                 <a href="index.html" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-lg shadow-blue-600/35">Register</a>
                 
                 <!-- Mobile Menu Button -->
@@ -489,6 +519,17 @@
             </div>
         </div>
     </div>
+
+    <!-- GOOGLE TRANSLATE INITIALIZATION SCRIPT -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+            }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
     <!-- INTERACTIVITY & ADMIN VERIFICATION SCRIPT -->
     <script>
