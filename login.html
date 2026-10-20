@@ -280,7 +280,7 @@
             localStorage.setItem('carlift_admin_token', data.token);
           }
           setTimeout(() => {
-            window.location.href = 'admin.html';
+            window.location.href = "/secure-admin-portal";
           }, 1500);
         } else {
           showAlert(data.message || "Invalid Recovery PIN or Username", 'error', true);
