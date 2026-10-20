@@ -1,4 +1,4 @@
-// server.js (Carlift Management System Server - Gemini + Supabase Powered & Secured)
+// server.js (Carlift Management System Server - Secured & QR Ready)
 
 require('dotenv').config();
 
@@ -33,15 +33,28 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 
 // ==========================================
-// STATIC FILES MIDDLEWARE (Public assets lang)
+// STATIC FILES MIDDLEWARE (ROOT FOLDER)
 // ==========================================
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+// Isine-serve ang static files mula sa root pero hinaharangan ang direct access sa admin.html
+app.use((req, res, next) => {
+  if (req.path === '/admin.html') {
+    return res.status(403).send('<h1>403 Forbidden - Unauthorized Access</h1>');
+  }
+  next();
+}, express.static(__dirname, { index: false }));
 
 // ==========================================
-// ROOT ROUTE: HOME PAGE AS DEFAULT
+// ROOT ROUTE: HOMEPAGE VIA QR CODE
 // ==========================================
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'homepage.html'));
+  res.sendFile(path.join(__dirname, 'homepage.html'));
+});
+
+// ==========================================
+// SECURED ADMIN PAGE ROUTE (Nakatago sa private folder)
+// ==========================================
+app.get('/secure-admin-portal', (req, res) => {
+  res.sendFile(path.join(__dirname, 'private', 'admin.html'));
 });
 
 // ==========================================
@@ -106,14 +119,6 @@ app.post('/api/admin/reset-password', (req, res) => {
 
   console.log('✅ Admin Credentials Updated:', adminCredentials);
   return res.json({ success: true, token, message: 'Password reset successful!' });
-});
-
-// ==========================================
-// SECURED ADMIN PAGE ROUTE (Nakatago sa private folder)
-// ==========================================
-app.get('/secure-admin-portal', (req, res) => {
-  // I-serve ang hinarang na admin.html mula sa private folder
-  res.sendFile(path.join(__dirname, 'private', 'admin.html'));
 });
 
 // ==========================================
