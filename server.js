@@ -14,6 +14,9 @@ const db = require('./database'); // PostgreSQL pool mula sa database.js
 const app = express();
 const SECRET_KEY = process.env.JWT_SECRET || 'carlift_secret_admin_key';
 
+// 👉 Idinagdag para sa Render Proxy (Trust Proxy para sa Rate Limiter)
+app.set('trust proxy', 1);
+
 // 1. Security Headers (Helmet) & CORS
 app.use(helmet({
   contentSecurityPolicy: false,
