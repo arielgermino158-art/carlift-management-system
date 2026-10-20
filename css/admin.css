@@ -1112,3 +1112,62 @@ tr:hover {
     display: inline;
   }
 }
+
+/* SUBMENU DROPDOWN STYLING */
+.nav-item-dropdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.nav-item-header .chevron-icon {
+  font-size: 11px;
+  transition: transform 0.3s ease;
+}
+
+.nav-item-dropdown.open .chevron-icon {
+  transform: rotate(180deg);
+}
+
+.submenu-list {
+  display: none;
+  list-style: none;
+  padding-left: 28px;
+  margin-top: 4px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-item-dropdown.open .submenu-list {
+  display: flex;
+}
+
+.submenu-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.submenu-item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.submenu-item.active {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  font-weight: 700;
+}
