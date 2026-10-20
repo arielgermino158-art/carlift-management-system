@@ -72,8 +72,10 @@
     <!-- Header / Navbar -->
     <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <img src="images/ms-logo.jpg" alt="MS Logo" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-500/20 shrink-0">
+            
+            <!-- SECRET ADMIN BUTTON: MS Logo (Pag pinindot, bubukas ang Admin Modal nang patago) -->
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="openAdminModal()" title="System Portal">
+                <img src="images/ms-logo.jpg" alt="MS Logo" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-500/20 shrink-0 group-hover:border-blue-400 transition">
                 <div class="flex flex-col">
                     <span class="text-sm sm:text-base lg:text-lg font-bold tracking-wider text-white leading-tight">SAJJAD <span class="text-blue-500">KHAN</span></span>
                     <span class="text-[9px] sm:text-[10px] text-slate-400 tracking-tight"></span>
@@ -91,9 +93,8 @@
                 <a href="#contact" class="nav-link hover:text-blue-400 transition py-1 relative">Contact</a>
             </nav>
 
-            <!-- Action Buttons (Login & Register side by side) -->
+            <!-- Action Buttons (Inalis na ang Login button sa tabi, Register na lang ang natira) -->
             <div class="flex items-center space-x-2 sm:space-x-3">
-                <button onclick="openAdminModal()" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition cursor-pointer">Login</button>
                 <a href="index.html" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-lg shadow-blue-600/35">Register</a>
                 
                 <!-- Mobile Menu Button -->
