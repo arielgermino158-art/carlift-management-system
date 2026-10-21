@@ -14,6 +14,9 @@ let currentPassengerPage = 1;
 let currentPaymentPage = 1;
 let currentReportPage = 1;
 let currentPendingPage = 1;
+let currentFullPaidPage = 1;
+let currentPartialPage = 1;
+let currentUnpaidPage = 1;
 
 // TEMPORARY ID STORAGE PARA SA MODALS
 let pendingActionPassengerId = null;
@@ -232,79 +235,196 @@ function updateBadge(id, count) {
   }
 }
 
-/* ================= RENDER CATEGORIZED TABLES (FULL PAID, PARTIAL, UNPAID) - WALANG ROUTE AT WORKING TIME, CLICKABLE PHOTO ================= */
+/* ================= PAGINATION HANDLERS PARA SA CATEGORIZED TABLES ================= */
+function changeFullPaidPage(direction) {
+  currentFullPaidPage += direction;
+  renderCategorizedTables(globalPassengerData);
+}
+
+function changePartialPage(direction) {
+  currentPartialPage += direction;
+  renderCategorizedTables(globalPassengerData);
+}
+
+function changeUnpaidPage(direction) {
+  currentUnpaidPage += direction;
+  renderCategorizedTables(globalPassengerData);
+}
+
+/* ================= RENDER CATEGORIZED TABLES WITH PAGINATION ================= */
 function renderCategorizedTables(passengers) {
   const fullPaidBody = document.getElementById('fullPaidTableBody');
   const partialBody = document.getElementById('partialTableBody');
   const unpaidBody = document.getElementById('unpaidTableBody');
 
-  if (fullPaidBody) fullPaidBody.innerHTML = '';
-  if (partialBody) partialBody.innerHTML = '';
-  if (unpaidBody) unpaidBody.innerHTML = '';
+  const fullPaidList = [];
+  const partialList = [];
+  const unpaidList = [];
 
   passengers.forEach(p => {
     if (p.status !== 'Pending Payment') {
-      const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
-      const photoSrc = p.photo || defaultAvatar;
-
       const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
       let lastPayDateStr = passengerPayments.length > 0 ? passengerPayments[0].payment_date : (p.last_payment_date || p.join_date);
 
-      let daysLeft = 0;
       let isExpired = false;
       if (lastPayDateStr) {
         const diffTime = new Date() - new Date(lastPayDateStr);
-        daysLeft = 25 - Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if (daysLeft < 0) isExpired = true;
+        const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        if (25 - daysPassed < 0) isExpired = true;
       } else {
         isExpired = true;
       }
 
       const totalPaid = Number(p.total_paid) || 0;
       const effectivePaid = isExpired ? 0 : totalPaid;
-      const remainingBalance = Math.max(0, 250 - effectivePaid);
 
-      const cleanPhone = p.whatsapp ? String(p.whatsapp).replace(/[^0-9]/g, '') : '';
-      let waButtonHtml = '';
-      if (daysLeft <= 3) {
-        const waText = encodeURIComponent(`Hi ${p.name || 'Passenger'}! Paalala mula sa Carlift OS: Ang iyong carlift subscription ay ${daysLeft < 0 ? 'Expired na' : daysLeft === 0 ? 'Due today na' : 'mag-eexpire sa loob ng ' + daysLeft + ' araw'}. Paki-settle ang AED 250. Salamat!`);
-        waButtonHtml = `
-          <a href="https://wa.me/${cleanPhone}?text=${waText}" target="_blank" style="background:#25d366; color:#fff; padding:3px 8px; font-size:11px; font-weight:700; text-decoration:none; border-radius:4px; display:inline-flex; align-items:center; gap:4px; margin-top:4px;">
-            <i class="fa-brands fa-whatsapp"></i> Send WA
-          </a>
-        `;
-      }
+      if (effectivePaid >= 250) fullPaidList.push({ ...p, effectivePaid, isExpired });
+      else if (effectivePaid > 0) partialList.push({ ...p, effectivePaid, isExpired });
+      else unpaidList.push({ ...p, effectivePaid, isExpired });
+    }
+  });
 
-      // FULL PAID ROW
-      if (effectivePaid >= 250 && fullPaidBody) {
+  const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
+
+  // --- 1. FULL PAID RENDER WITH PAGINATION ---
+  if (fullPaidBody) {
+    fullPaidBody.innerHTML = '';
+    const totalFP = fullPaidList.length;
+    const totalFPPages = Math.ceil(totalFP / ITEMS_PER_PAGE) || 1;
+    if (currentFullPaidPage < 1) currentFullPaidPage = 1;
+    if (currentFullPaidPage > totalFPPages) currentFullPaidPage = totalFPPages;
+
+    const startFP = (currentFullPaidPage - 1) * ITEMS_PER_PAGE;
+    const paginatedFP = fullPaidList.slice(startFP, startFP + ITEMS_PER_PAGE);
+
+    if (paginatedFP.length === 0) {
+      fullPaidBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color:#94a3b8; font-weight:700;">No full paid passengers found.</td></tr>';
+    } else {
+      paginatedFP.forEach(p => {
+        const photoSrc = p.photo || defaultAvatar;
+        const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
+        let lastPayDateStr = passengerPayments.length > 0 ? passengerPayments[0].payment_date : (p.last_payment_date || p.join_date);
+        let daysLeft = 0;
+        if (lastPayDateStr) {
+          const diffTime = new Date() - new Date(lastPayDateStr);
+          daysLeft = 25 - Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
         fullPaidBody.innerHTML += `
           <tr>
             <td><span class="id-chip">${p.id}</span></td>
             <td><b>${p.name}</b></td>
             <td><img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" /></td>
             <td>${p.whatsapp || p.mobile || 'N/A'}</td>
-            <td><span style="color:#10b981; font-weight:800;">AED ${effectivePaid}</span></td>
+            <td><span style="color:#10b981; font-weight:800;">AED ${p.effectivePaid}</span></td>
             <td><span class="badge badge-active">${daysLeft} Days Left</span></td>
             <td><span class="badge badge-active">Full Paid</span></td>
           </tr>
         `;
-      }
-      // PARTIAL ROW
-      else if (effectivePaid > 0 && partialBody) {
+      });
+    }
+
+    const fpInfo = document.getElementById('fullPaidPageInfo');
+    const fpPrev = document.getElementById('btnPrevFullPaid');
+    const fpNext = document.getElementById('btnNextFullPaid');
+    if (fpInfo) fpInfo.innerText = `Showing page ${currentFullPaidPage} of ${totalFPPages} (${totalFP} full paid passengers)`;
+    if (fpPrev) fpPrev.disabled = (currentFullPaidPage === 1);
+    if (fpNext) fpNext.disabled = (currentFullPaidPage === totalFPPages || totalFPPages === 0);
+  }
+
+  // --- 2. PARTIAL RENDER WITH PAGINATION ---
+  if (partialBody) {
+    partialBody.innerHTML = '';
+    const totalPart = partialList.length;
+    const totalPartPages = Math.ceil(totalPart / ITEMS_PER_PAGE) || 1;
+    if (currentPartialPage < 1) currentPartialPage = 1;
+    if (currentPartialPage > totalPartPages) currentPartialPage = totalPartPages;
+
+    const startPart = (currentPartialPage - 1) * ITEMS_PER_PAGE;
+    const paginatedPart = partialList.slice(startPart, startPart + ITEMS_PER_PAGE);
+
+    if (paginatedPart.length === 0) {
+      partialBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color:#94a3b8; font-weight:700;">No partial payment passengers found.</td></tr>';
+    } else {
+      paginatedPart.forEach(p => {
+        const photoSrc = p.photo || defaultAvatar;
+        const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
+        let lastPayDateStr = passengerPayments.length > 0 ? passengerPayments[0].payment_date : (p.last_payment_date || p.join_date);
+        let daysLeft = 0;
+        if (lastPayDateStr) {
+          const diffTime = new Date() - new Date(lastPayDateStr);
+          daysLeft = 25 - Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        const remainingBalance = Math.max(0, 250 - p.effectivePaid);
+        const cleanPhone = p.whatsapp ? String(p.whatsapp).replace(/[^0-9]/g, '') : '';
+        let waButtonHtml = '';
+        if (daysLeft <= 3) {
+          const waText = encodeURIComponent(`Hi ${p.name || 'Passenger'}! Paalala mula sa Carlift OS: Ang iyong carlift subscription ay ${daysLeft < 0 ? 'Expired na' : daysLeft === 0 ? 'Due today na' : 'mag-eexpire sa loob ng ' + daysLeft + ' araw'}. Paki-settle ang AED 250. Salamat!`);
+          waButtonHtml = `
+            <a href="https://wa.me/${cleanPhone}?text=${waText}" target="_blank" style="background:#25d366; color:#fff; padding:3px 8px; font-size:11px; font-weight:700; text-decoration:none; border-radius:4px; display:inline-flex; align-items:center; gap:4px; margin-top:4px;">
+              <i class="fa-brands fa-whatsapp"></i> Send WA
+            </a>
+          `;
+        }
+
         partialBody.innerHTML += `
           <tr>
             <td><span class="id-chip">${p.id}</span></td>
             <td><b>${p.name}</b></td>
             <td><img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" /></td>
             <td>${p.whatsapp || p.mobile || 'N/A'}</td>
-            <td><span style="color:#d97706; font-weight:700;">Paid: AED ${effectivePaid}<br><b style="color:#ef4444;">Bal: AED ${remainingBalance}</b></span></td>
+            <td><span style="color:#d97706; font-weight:700;">Paid: AED ${p.effectivePaid}<br><b style="color:#ef4444;">Bal: AED ${remainingBalance}</b></span></td>
             <td><span class="badge badge-warning">${daysLeft >= 0 ? daysLeft + ' Days Left' : 'Expired'}</span><br>${waButtonHtml}</td>
             <td><button class="btn-action-update" onclick="openUpdatePaymentDateModal('${p.id}', '${p.name}')">Add Pay</button></td>
           </tr>
         `;
-      }
-      // UNPAID ROW
-      else if (unpaidBody) {
+      });
+    }
+
+    const partInfo = document.getElementById('partialPageInfo');
+    const partPrev = document.getElementById('btnPrevPartial');
+    const partNext = document.getElementById('btnNextPartial');
+    if (partInfo) partInfo.innerText = `Showing page ${currentPartialPage} of ${totalPartPages} (${totalPart} partial passengers)`;
+    if (partPrev) partPrev.disabled = (currentPartialPage === 1);
+    if (partNext) partNext.disabled = (currentPartialPage === totalPartPages || totalPartPages === 0);
+  }
+
+  // --- 3. UNPAID RENDER WITH PAGINATION ---
+  if (unpaidBody) {
+    unpaidBody.innerHTML = '';
+    const totalUnpaid = unpaidList.length;
+    const totalUnpaidPages = Math.ceil(totalUnpaid / ITEMS_PER_PAGE) || 1;
+    if (currentUnpaidPage < 1) currentUnpaidPage = 1;
+    if (currentUnpaidPage > totalUnpaidPages) currentUnpaidPage = totalUnpaidPages;
+
+    const startUnpaid = (currentUnpaidPage - 1) * ITEMS_PER_PAGE;
+    const paginatedUnpaid = unpaidList.slice(startUnpaid, startUnpaid + ITEMS_PER_PAGE);
+
+    if (paginatedUnpaid.length === 0) {
+      unpaidBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color:#94a3b8; font-weight:700;">No unpaid or expired passengers found.</td></tr>';
+    } else {
+      paginatedUnpaid.forEach(p => {
+        const photoSrc = p.photo || defaultAvatar;
+        const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
+        let lastPayDateStr = passengerPayments.length > 0 ? passengerPayments[0].payment_date : (p.last_payment_date || p.join_date);
+        let daysLeft = 0;
+        if (lastPayDateStr) {
+          const diffTime = new Date() - new Date(lastPayDateStr);
+          daysLeft = 25 - Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        const cleanPhone = p.whatsapp ? String(p.whatsapp).replace(/[^0-9]/g, '') : '';
+        let waButtonHtml = '';
+        if (daysLeft <= 3 || p.isExpired) {
+          const waText = encodeURIComponent(`Hi ${p.name || 'Passenger'}! Paalala mula sa Carlift OS: Ang iyong carlift subscription ay ${p.isExpired ? 'Expired na' : daysLeft === 0 ? 'Due today na' : 'mag-eexpire sa loob ng ' + daysLeft + ' araw'}. Paki-settle ang AED 250. Salamat!`);
+          waButtonHtml = `
+            <a href="https://wa.me/${cleanPhone}?text=${waText}" target="_blank" style="background:#25d366; color:#fff; padding:3px 8px; font-size:11px; font-weight:700; text-decoration:none; border-radius:4px; display:inline-flex; align-items:center; gap:4px; margin-top:4px;">
+              <i class="fa-brands fa-whatsapp"></i> Send WA
+            </a>
+          `;
+        }
+
         unpaidBody.innerHTML += `
           <tr>
             <td><span class="id-chip">${p.id}</span></td>
@@ -312,13 +432,20 @@ function renderCategorizedTables(passengers) {
             <td><img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" /></td>
             <td>${p.whatsapp || p.mobile || 'N/A'}</td>
             <td><span style="color:#ef4444; font-weight:800;">AED 250 Due</span></td>
-            <td><span class="badge badge-danger">${isExpired ? 'Expired / Overdue' : daysLeft + ' Days Left'}</span><br>${waButtonHtml}</td>
+            <td><span class="badge badge-danger">${p.isExpired ? 'Expired / Overdue' : daysLeft + ' Days Left'}</span><br>${waButtonHtml}</td>
             <td><button class="btn-action-update" onclick="openUpdatePaymentDateModal('${p.id}', '${p.name}')">Record Pay</button></td>
           </tr>
         `;
-      }
+      });
     }
-  });
+
+    const unpaidInfo = document.getElementById('unpaidPageInfo');
+    const unpaidPrev = document.getElementById('btnPrevUnpaid');
+    const unpaidNext = document.getElementById('btnNextUnpaid');
+    if (unpaidInfo) unpaidInfo.innerText = `Showing page ${currentUnpaidPage} of ${totalUnpaidPages} (${totalUnpaid} unpaid/expired passengers)`;
+    if (unpaidPrev) unpaidPrev.disabled = (currentUnpaidPage === 1);
+    if (unpaidNext) unpaidNext.disabled = (currentUnpaidPage === totalUnpaidPages || totalUnpaidPages === 0);
+  }
 }
 
 function renderPendingTable(pendingList) {
