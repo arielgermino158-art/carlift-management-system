@@ -300,7 +300,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Route</th><th>Working Time</th><th>Total Paid</th><th>Countdown</th><th>Status</th>
+                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Total Paid</th><th>Countdown</th><th>Status</th>
                 </tr>
               </thead>
               <tbody id="fullPaidTableBody"></tbody>
@@ -319,7 +319,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Route</th><th>Working Time</th><th>Paid / Balance</th><th>Countdown</th><th>Quick Action</th>
+                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Paid / Balance</th><th>Countdown</th><th>Quick Action</th>
                 </tr>
               </thead>
               <tbody id="partialTableBody"></tbody>
@@ -338,7 +338,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Route</th><th>Working Time</th><th>Balance Due</th><th>Countdown</th><th>Quick Action</th>
+                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Balance Due</th><th>Countdown</th><th>Quick Action</th>
                 </tr>
               </thead>
               <tbody id="unpaidTableBody"></tbody>
@@ -737,9 +737,12 @@
         </div>
       </div>
 
-      <div class="modal-footer" style="justify-content: space-between; gap: 10px;">
-        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none; flex:1;" onclick="closeQRResultModal()">Close</button>
-        <button class="btn-owner-primary" style="flex:1;" onclick="closeQRResultModal(); openQRScannerModal();">Scan Next</button>
+      <div class="modal-footer" style="flex-direction: column; gap: 8px;">
+        <div style="display: flex; gap: 8px; width: 100%;">
+          <button class="btn-action-update" id="qrScanUpdatePayBtn" style="flex: 1; padding: 10px; background: #10b981; color: #fff; border-radius: 8px; font-weight: 700; border: none; cursor: pointer;"><i class="fa-solid fa-cash-register"></i> Update Pay</button>
+          <button class="btn-owner-primary" style="flex:1;" onclick="closeQRResultModal(); openQRScannerModal();">Scan Next</button>
+        </div>
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none; width: 100%;" onclick="closeQRResultModal()">Close</button>
       </div>
     </div>
   </div>

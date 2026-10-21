@@ -232,7 +232,7 @@ function updateBadge(id, count) {
   }
 }
 
-/* ================= RENDER CATEGORIZED TABLES (FULL PAID, PARTIAL, UNPAID) ================= */
+/* ================= RENDER CATEGORIZED TABLES (FULL PAID, PARTIAL, UNPAID) - WALANG ROUTE AT WORKING TIME, CLICKABLE PHOTO ================= */
 function renderCategorizedTables(passengers) {
   const fullPaidBody = document.getElementById('fullPaidTableBody');
   const partialBody = document.getElementById('partialTableBody');
@@ -281,10 +281,8 @@ function renderCategorizedTables(passengers) {
           <tr>
             <td><span class="id-chip">${p.id}</span></td>
             <td><b>${p.name}</b></td>
-            <td><img src="${photoSrc}" class="avatar-img" /></td>
+            <td><img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" /></td>
             <td>${p.whatsapp || p.mobile || 'N/A'}</td>
-            <td>${p.pickup} → ${p.dropoff}</td>
-            <td>${p.time || 'N/A'}</td>
             <td><span style="color:#10b981; font-weight:800;">AED ${effectivePaid}</span></td>
             <td><span class="badge badge-active">${daysLeft} Days Left</span></td>
             <td><span class="badge badge-active">Full Paid</span></td>
@@ -297,10 +295,8 @@ function renderCategorizedTables(passengers) {
           <tr>
             <td><span class="id-chip">${p.id}</span></td>
             <td><b>${p.name}</b></td>
-            <td><img src="${photoSrc}" class="avatar-img" /></td>
+            <td><img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" /></td>
             <td>${p.whatsapp || p.mobile || 'N/A'}</td>
-            <td>${p.pickup} → ${p.dropoff}</td>
-            <td>${p.time || 'N/A'}</td>
             <td><span style="color:#d97706; font-weight:700;">Paid: AED ${effectivePaid}<br><b style="color:#ef4444;">Bal: AED ${remainingBalance}</b></span></td>
             <td><span class="badge badge-warning">${daysLeft >= 0 ? daysLeft + ' Days Left' : 'Expired'}</span><br>${waButtonHtml}</td>
             <td><button class="btn-action-update" onclick="openUpdatePaymentDateModal('${p.id}', '${p.name}')">Add Pay</button></td>
@@ -313,10 +309,8 @@ function renderCategorizedTables(passengers) {
           <tr>
             <td><span class="id-chip">${p.id}</span></td>
             <td><b>${p.name}</b></td>
-            <td><img src="${photoSrc}" class="avatar-img" /></td>
+            <td><img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" /></td>
             <td>${p.whatsapp || p.mobile || 'N/A'}</td>
-            <td>${p.pickup} → ${p.dropoff}</td>
-            <td>${p.time || 'N/A'}</td>
             <td><span style="color:#ef4444; font-weight:800;">AED 250 Due</span></td>
             <td><span class="badge badge-danger">${isExpired ? 'Expired / Overdue' : daysLeft + ' Days Left'}</span><br>${waButtonHtml}</td>
             <td><button class="btn-action-update" onclick="openUpdatePaymentDateModal('${p.id}', '${p.name}')">Record Pay</button></td>
@@ -372,7 +366,7 @@ function renderPendingTable(pendingList) {
           <td><span class="id-chip">${p.id}</span></td>
           <td style="font-weight: 800; color: #0f172a;">${p.name || 'N/A'}</td>
           <td>
-            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" />
+            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" />
           </td>
           <td>
             <a href="https://wa.me/${cleanPhone}" target="_blank" class="whatsapp-link">
@@ -844,7 +838,7 @@ function renderMasterlistTable(data) {
           <td><span class="id-chip">${p.id}</span></td>
           <td style="font-weight: 800; color: #0f172a;">${p.name || 'N/A'}</td>
           <td>
-            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" />
+            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" />
           </td>
           <td>
             <a href="https://wa.me/${cleanPhone}" target="_blank" class="whatsapp-link">
@@ -936,7 +930,7 @@ function formatMonthOnly(dateString) {
   return dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
-/* ================= PAYMENTS TABLE ================= */
+/* ================= PAYMENTS TABLE (PINAKA LATEST SA UNA) ================= */
 function filterPayments() {
   currentPaymentPage = 1;
   renderPaymentsTable(globalPaymentData);
@@ -953,6 +947,7 @@ function renderPaymentsTable(data) {
   
   let displayData = [...data];
 
+  // Sorting: Pinaka-latest na payment date at receipt no ang nauuna sa itaas
   displayData.sort((a, b) => {
     const dateA = new Date(a.payment_date || 0);
     const dateB = new Date(b.payment_date || 0);
@@ -1001,7 +996,7 @@ function renderPaymentsTable(data) {
           <td><b>${pay.passenger_id}</b></td>
           <td><b>${passName}</b></td>
           <td>
-            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${passName}')" title="Click to view full photo" />
+            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${passName}')" title="Click to view full photo" style="cursor:pointer;" />
           </td>
           <td><span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700;">${billMonth}</span></td>
           <td style="font-weight: 800; color: #10b981;">AED ${pay.amount}</td>
@@ -1368,10 +1363,19 @@ function handleScannedQRCode(scannedCode) {
     const latestPaymentElem = document.getElementById('qrScanLatestPayment');
     const balanceElem = document.getElementById('qrScanBalance');
     const countdownElem = document.getElementById('qrScanCountdown');
+    const updatePayBtn = document.getElementById('qrScanUpdatePayBtn');
 
     if (photoElem) photoElem.src = matchedPassenger.photo || defaultAvatar;
     if (nameElem) nameElem.innerText = `${matchedPassenger.name || 'N/A'} (${matchedPassenger.id || 'N/A'})`;
     if (phoneElem) phoneElem.innerText = matchedPassenger.whatsapp || matchedPassenger.mobile || 'No Phone';
+
+    // Ikabit ang Update Pay button action para direkta sa modal
+    if (updatePayBtn) {
+      updatePayBtn.onclick = () => {
+        closeQRResultModal();
+        openUpdatePaymentDateModal(matchedPassenger.id, matchedPassenger.name);
+      };
+    }
 
     const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === matchedPassenger.id);
     let lastPayDateStr = null;
