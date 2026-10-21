@@ -55,6 +55,21 @@
         <li class="nav-item" onclick="switchTab('passengers', event)">
           <span><i class="fa-solid fa-users"></i> Passengers List</span>
         </li>
+
+        <!-- TATLONG BAGONG TABS SA BABA NG PASSENGER LIST -->
+        <li class="nav-item nav-sub-item" onclick="switchTab('fullpaid', event)" style="padding-left: 28px; font-size: 13px;">
+          <span><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Full Paid</span>
+          <span id="fbFullPaidBadge" class="fb-badge" style="background: #10b981; color: #fff; display: none;">0</span>
+        </li>
+        <li class="nav-item nav-sub-item" onclick="switchTab('partial', event)" style="padding-left: 28px; font-size: 13px;">
+          <span><i class="fa-solid fa-hourglass-half" style="color: #f59e0b;"></i> Partial</span>
+          <span id="fbPartialBadge" class="fb-badge" style="background: #f59e0b; color: #fff; display: none;">0</span>
+        </li>
+        <li class="nav-item nav-sub-item" onclick="switchTab('unpaid', event)" style="padding-left: 28px; font-size: 13px;">
+          <span><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Unpaid</span>
+          <span id="fbUnpaidBadge" class="fb-badge" style="background: #ef4444; color: #fff; display: none;">0</span>
+        </li>
+
         <li class="nav-item" onclick="switchTab('payments', event)">
           <span><i class="fa-solid fa-receipt"></i> Payment History</span>
         </li>
@@ -271,6 +286,63 @@
                 Next <i class="fa-solid fa-chevron-right"></i>
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 2A: FULL PAID PASSENGERS ================= -->
+      <section id="view-fullpaid" class="view-section">
+        <div class="table-card">
+          <div class="table-header" style="background: #ecfdf5;">
+            <div class="table-title" style="color: #065f46;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Full Paid Passengers (AED 250)</div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Route</th><th>Working Time</th><th>Total Paid</th><th>Countdown</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="fullPaidTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 2B: PARTIAL PASSENGERS ================= -->
+      <section id="view-partial" class="view-section">
+        <div class="table-card">
+          <div class="table-header" style="background: #fffbeb;">
+            <div class="table-title" style="color: #92400e;"><i class="fa-solid fa-hourglass-half" style="color: #f59e0b;"></i> Partial Payment Passengers</div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Route</th><th>Working Time</th><th>Paid / Balance</th><th>Countdown</th><th>Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="partialTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 2C: UNPAID PASSENGERS ================= -->
+      <section id="view-unpaid" class="view-section">
+        <div class="table-card">
+          <div class="table-header" style="background: #fef2f2;">
+            <div class="table-title" style="color: #991b1b;"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Unpaid / Expired Passengers</div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Route</th><th>Working Time</th><th>Balance Due</th><th>Countdown</th><th>Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="unpaidTableBody"></tbody>
+            </table>
           </div>
         </div>
       </section>
