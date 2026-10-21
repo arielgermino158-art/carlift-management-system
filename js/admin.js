@@ -28,7 +28,7 @@ let html5QrCodeScanner = null;
 
 // HELPER: GET AUTH HEADERS
 function getAuthHeaders() {
-  const token = localStorage.getItem('carlift_admin_token');
+  const token = localStorage.getItem('carlift_admin_token') || localStorage.getItem('supabase_admin_token');
   return {
     'Content-Type': 'application/json',
     'Authorization': token ? `Bearer ${token}` : ''
@@ -37,7 +37,7 @@ function getAuthHeaders() {
 
 document.addEventListener('DOMContentLoaded', () => {
   // Security Check
-  const token = localStorage.getItem('carlift_admin_token');
+  const token = localStorage.getItem('carlift_admin_token') || localStorage.getItem('supabase_admin_token');
   if (!token) {
     window.location.href = 'login.html';
     return;
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto Refresh Every 5 Seconds (Live Sync)
   setInterval(loadDashboard, 5000);
 
-  // GLOBAL ESCAPE KEY LISTENER (PARA MAG-CLOSE LAHAT NG MODALS)
+  // GLOBAL ESCAPE KEY LISTENER
   window.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
       closePaymentModal();
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (this.id === 'successReceiptModal') {
           if (typeof loadDashboard === 'function') loadDashboard();
         }
-        if (this.id === 'qrScannerModal') {
+        if (this.id === 'qrScannerModal' || this.id === 'view-qrscanner') {
           stopQRScanner();
         }
       }
@@ -148,13 +148,14 @@ async function loadDashboard() {
 
     if (res.status === 401 || res.status === 403) {
       localStorage.removeItem('carlift_admin_token');
+      localStorage.removeItem('supabase_admin_token');
       window.location.href = 'login.html';
       return;
     }
 
     const data = await res.json();
 
-    if (data.success) {
+    if (data && data.success) {
       reportSummaryData = data;
       globalPassengerData = data.passengers || [];
       globalPaymentData = data.payments || [];
@@ -175,7 +176,7 @@ function updateKPIs(passengers, payments) {
   const pendingCount = passengers.filter(p => p.status === 'Pending Payment').length;
   const totalRev = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   const seatsAvailable = Math.max(0, maxVanCapacity - activeCount);
-  const occupancyPercent = Math.min(Math.round((activeCount / maxVanCapacity) * 100), 100);
+  const occupancyPercent = maxVanCapacity > 0 ? Math.min(Math.round((activeCount / maxVanCapacity) * 100), 100) : 0;
 
   if (document.getElementById('kpiActiveCount')) document.getElementById('kpiActiveCount').innerText = activeCount;
   if (document.getElementById('kpiPendingCount')) document.getElementById('kpiPendingCount').innerText = pendingCount;
@@ -214,7 +215,7 @@ function renderPendingTable(pendingList) {
     pendingBody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 24px; color:#94a3b8; font-weight: 700;">No pending cash approvals. All clear!</td></tr>';
   } else {
     paginatedData.forEach(p => {
-      const cleanPhone = p.whatsapp ? p.whatsapp.replace(/[^0-9]/g, '') : '';
+      const cleanPhone = p.whatsapp ? String(p.whatsapp).replace(/[^0-9]/g, '') : '';
       const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
       const photoSrc = p.photo || defaultAvatar;
 
@@ -229,12 +230,8 @@ function renderPendingTable(pendingList) {
         }
       }
 
-      if (scheduleText) {
-        scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      }
-      if (timeText) {
-        timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      }
+      if (scheduleText) scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
+      if (timeText) timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
 
       const rawDateToFormat = p.join_date || p.created_at;
       const joinedDateFormatted = rawDateToFormat ? formatDateOnly(rawDateToFormat) : 'N/A';
@@ -242,26 +239,26 @@ function renderPendingTable(pendingList) {
       const row = `
         <tr>
           <td><span class="id-chip">${p.id}</span></td>
-          <td style="font-weight: 800; color: #0f172a;">${p.name}</td>
+          <td style="font-weight: 800; color: #0f172a;">${p.name || 'N/A'}</td>
           <td>
-            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name}')" title="Click to view full photo" />
+            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" />
           </td>
           <td>
             <a href="https://wa.me/${cleanPhone}" target="_blank" class="whatsapp-link">
-              <i class="fa-brands fa-whatsapp"></i> ${p.whatsapp || p.mobile}
+              <i class="fa-brands fa-whatsapp"></i> ${p.whatsapp || p.mobile || 'N/A'}
             </a>
           </td>
-          <td><b>${p.pickup}</b> → <b>${p.dropoff}</b></td>
+          <td><b>${p.pickup || 'N/A'}</b> → <b>${p.dropoff || 'N/A'}</b></td>
           <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${scheduleText || 'N/A'}</span></td>
           <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${timeText || 'N/A'}</span></td>
           <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${joinedDateFormatted}</span></td>
-          <td><span class="badge badge-pending">${p.status}</span></td>
+          <td><span class="badge badge-pending">${p.status || 'Pending'}</span></td>
           <td>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <button class="btn-action-approve" onclick="openVerifyModal('${p.id}', '${p.name}')">
+              <button class="btn-action-approve" onclick="openVerifyModal('${p.id}', '${p.name || ''}')">
                 <i class="fa-solid fa-circle-check"></i> Approve
               </button>
-              <button class="btn-action-delete" onclick="openDeleteModal('${p.id}', '${p.name}', 'approval')">
+              <button class="btn-action-delete" onclick="openDeleteModal('${p.id}', '${p.name || ''}', 'approval')">
                 <i class="fa-solid fa-trash"></i> Delete
               </button>
             </div>
@@ -287,26 +284,20 @@ function openImageModal(imgSrc, passengerName) {
   const titleElem = document.getElementById('imageModalTitle');
   if (imgPreview) imgPreview.src = imgSrc;
   if (titleElem) titleElem.innerHTML = `<i class="fa-solid fa-user"></i> ${passengerName || 'Passenger Photo'}`;
-  document.getElementById('imageModal').classList.add('active');
+  const modal = document.getElementById('imageModal');
+  if (modal) modal.classList.add('active');
 }
 
 function closeImageModal() {
-  document.getElementById('imageModal').classList.remove('active');
+  const modal = document.getElementById('imageModal');
+  if (modal) modal.classList.remove('active');
 }
 
 /* ================= CUSTOM APPROVE & DELETE MODAL HANDLERS ================= */
 function openVerifyModal(passengerId, passengerName) {
   pendingActionPassengerId = passengerId;
-  
-  const titleElem = document.getElementById('verifyModalTitle');
-  const messageElem = document.getElementById('verifyModalMessage');
   const nameElem = document.getElementById('verifyModalPassengerName');
-
   if (nameElem) nameElem.innerText = passengerName || passengerId;
-  if (titleElem) titleElem.innerText = 'Approve Approval';
-  if (messageElem) {
-    messageElem.innerHTML = `Are you sure you want to Approve <span id="verifyModalPassengerName" style="font-weight: 800; color: #0f172a;">${passengerName || passengerId}</span>?`;
-  }
   
   const modal = document.getElementById('verifyModal');
   if (modal) modal.classList.add('active');
@@ -331,11 +322,11 @@ async function confirmVerifyPayment() {
     });
 
     const data = await res.json();
-    if (data.success) {
+    if (data && data.success) {
       showToastNotification(`Passenger approved and moved to Passenger List!`);
       loadDashboard();
     } else {
-      showToastNotification(`Error: ${data.message || 'Approval failed.'}`);
+      showToastNotification(`Error: ${(data && data.message) || 'Approval failed.'}`);
     }
   } catch (err) {
     showToastNotification("Failed to connect to server.");
@@ -347,17 +338,14 @@ function openDeleteModal(passengerId, passengerName, context = 'passenger') {
   currentDeleteContext = context;
 
   const titleElem = document.getElementById('deleteModalTitle');
-  const messageElem = document.getElementById('deleteModalMessage');
   const nameElem = document.getElementById('deleteModalPassengerName');
 
   if (nameElem) nameElem.innerText = passengerName || passengerId;
 
-  if (context === 'approval') {
-    if (titleElem) titleElem.innerText = 'Delete Approval';
-    if (messageElem) messageElem.innerHTML = `Are you sure you want to delete <span id="deleteModalPassengerName" style="font-weight: 800; color: #0f172a;">${passengerName || passengerId}</span>?`;
-  } else {
-    if (titleElem) titleElem.innerText = 'Delete Passenger';
-    if (messageElem) messageElem.innerHTML = `Are you sure you want to delete <span id="deleteModalPassengerName" style="font-weight: 800; color: #0f172a;">${passengerName || passengerId}</span>?`;
+  if (titleElem) {
+    titleElem.innerHTML = context === 'approval' 
+      ? `<i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Delete Approval`
+      : `<i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Delete Passenger`;
   }
 
   const modal = document.getElementById('deleteModal');
@@ -377,11 +365,10 @@ async function confirmDeletePassenger() {
   closeDeleteModal();
 
   try {
-    const res = await fetch(`${API_BASE_URL}/passengers/${passengerId}`, {
+    await fetch(`${API_BASE_URL}/passengers/${passengerId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
-    await res.json().catch(() => ({ success: true }));
   } catch (err) {
     console.warn("Offline or server error, deleting from local array:", err);
   }
@@ -410,6 +397,7 @@ function openUpdatePaymentDateModal(passengerId, passengerName) {
 
   if (nameElem) nameElem.innerText = passengerName || passengerId;
   if (idInput) idInput.value = passengerId;
+  if (amountInput) amountInput.value = '250';
   
   if (dateInput) {
     dateInput.value = new Date().toISOString().slice(0, 10);
@@ -439,7 +427,6 @@ async function confirmUpdatePaymentDate() {
   
   const newDateValue = dateInput ? dateInput.value : '';
   const paidAmount = amountInput ? Number(amountInput.value) : 250;
-  
   const billingMonth = newDateValue || new Date().toISOString().slice(0, 10);
 
   if (!passengerId || !newDateValue) {
@@ -468,7 +455,7 @@ async function confirmUpdatePaymentDate() {
     });
 
     const data = await res.json();
-    if (data.success) {
+    if (data && data.success) {
       showToastNotification(`Payment of AED ${paidAmount} recorded successfully! Receipt #${data.receiptNo}`);
       loadDashboard();
       
@@ -476,7 +463,7 @@ async function confirmUpdatePaymentDate() {
         triggerSuccessReceiptTimer(data.receiptNo, paidAmount, 'Owner Update');
       }
     } else {
-      showToastNotification(data.message || 'Failed to update payment date.');
+      showToastNotification((data && data.message) || 'Failed to update payment date.');
     }
   } catch (err) {
     showToastNotification("Server error while recording payment.");
@@ -487,7 +474,15 @@ async function confirmUpdatePaymentDate() {
 function triggerSuccessReceiptTimer(receiptNo, amount, collector) {
   const modal = document.getElementById('successReceiptModal');
   const countdownNum = document.getElementById('receiptCountdownNum');
+  const nameSpan = document.getElementById('receiptPassengerName');
+  const amountSpan = document.getElementById('receiptAmount');
+  const collectorSpan = document.getElementById('receiptCollector');
+
   if (!modal) return;
+
+  if (nameSpan) nameSpan.innerText = pendingActionPassengerId || '-';
+  if (amountSpan) amountSpan.innerText = `AED ${amount}`;
+  if (collectorSpan) collectorSpan.innerText = collector || 'Owner';
 
   if (receiptTimer) {
     clearInterval(receiptTimer);
@@ -511,19 +506,15 @@ function triggerSuccessReceiptTimer(receiptNo, amount, collector) {
 
 function closeSuccessReceiptModal() {
   const modal = document.getElementById('successReceiptModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
+  if (modal) modal.style.display = 'none';
   if (receiptTimer) {
     clearInterval(receiptTimer);
     receiptTimer = null;
   }
-  if (typeof loadDashboard === 'function') {
-    loadDashboard();
-  }
+  loadDashboard();
 }
 
-/* ================= CUSTOM ENGLISH ALERT MODAL WITH 3-SECOND TIMER ================= */
+/* ================= CUSTOM TOAST NOTIFICATION ================= */
 function showToastNotification(message) {
   let alertModal = document.getElementById('customAlertModal');
   if (!alertModal) {
@@ -542,7 +533,8 @@ function showToastNotification(message) {
     document.body.appendChild(alertModal);
   }
 
-  document.getElementById('customAlertMessage').innerText = message;
+  const msgElem = document.getElementById('customAlertMessage');
+  if (msgElem) msgElem.innerText = message;
   alertModal.classList.add('active');
   alertModal.style.display = 'flex';
 
@@ -568,7 +560,7 @@ function closeCustomAlertModal() {
   }
 }
 
-/* ================= PAGINATED PASSENGERS TABLE (WITH 25-DAY CYCLE LOGIC & COUNTDOWN) ================= */
+/* ================= PASSENGERS TABLE & 25-DAY CYCLE WITH WHATSAPP REMINDER BUTTON ================= */
 function filterPassengers() {
   currentPassengerPage = 1;
   renderMasterlistTable(globalPassengerData);
@@ -614,7 +606,7 @@ function renderMasterlistTable(data) {
     masterBody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 30px; color:#94a3b8; font-weight:700;">No active passengers found.</td></tr>';
   } else {
     paginatedData.forEach(p => {
-      const cleanPhone = p.whatsapp ? p.whatsapp.replace(/[^0-9]/g, '') : '';
+      const cleanPhone = p.whatsapp ? String(p.whatsapp).replace(/[^0-9]/g, '') : '';
       const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
       const photoSrc = p.photo || defaultAvatar;
 
@@ -629,19 +621,13 @@ function renderMasterlistTable(data) {
         }
       }
 
-      if (scheduleText) {
-        scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      }
-      if (timeText) {
-        timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      }
+      if (scheduleText) scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
+      if (timeText) timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
 
       const rawDateToFormat = p.join_date || p.created_at;
       const joinedDateFormatted = rawDateToFormat ? formatDateOnly(rawDateToFormat) : 'N/A';
       
-      // ================= 25-DAY AUTOMATIC CYCLE LOGIC (NAKABASE SA PAYMENT HISTORY) =================
       const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
-      
       let lastPayDateStr = null;
       if (passengerPayments.length > 0) {
         passengerPayments.sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
@@ -697,24 +683,48 @@ function renderMasterlistTable(data) {
         statusBadgeHtml = `<span class="badge" style="background: #fee2e2; color: #ef4444; font-weight: 700; padding: 6px 10px; border-radius: 6px;">Inactive</span>`;
       }
 
+      // ================= SMART WHATSAPP REMINDER BUTTON (LALABAS KAPAG <= 3 DAYS O EXPIRED) =================
+      let waButtonHtml = '';
+      if (daysLeft <= 3) {
+        const passName = p.name || 'Passenger';
+        let waText = '';
+
+        if (daysLeft < 0) {
+          waText = `Hi ${passName}! Paalala lang po mula sa Carlift OS: Ang iyong 25-day carlift subscription ay Expired / Overdue na. Paki-settle na po ang AED 250 para ma-renew ang iyong seat reservation. Salamat!`;
+        } else if (daysLeft === 0) {
+          waText = `Hi ${passName}! Paalala lang po mula sa Carlift OS: Due date mo na ngayong araw para sa carlift subscription (AED 250). Paki-settle po sa Owner para tuloy-tuloy ang biyahe. Thank you!`;
+        } else {
+          waText = `Hi ${passName}! Paalala lang po mula sa Carlift OS: Ang iyong 25-day carlift subscription ay mag-eexpire sa loob ng ${daysLeft} araw. Rate: AED 250. Paki-settle na lang po sa Owner. Salamat!`;
+        }
+
+        const encodedMsg = encodeURIComponent(waText);
+        waButtonHtml = `
+          <div style="margin-top: 6px;">
+            <a href="https://wa.me/${cleanPhone}?text=${encodedMsg}" target="_blank" class="btn-action-update" style="background: #25d366; color: #ffffff; padding: 3px 8px; font-size: 11px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; font-weight: 700; box-shadow: 0 2px 6px rgba(37,211,102,0.3);">
+              <i class="fa-brands fa-whatsapp"></i> Send WA
+            </a>
+          </div>
+        `;
+      }
+
       const row = `
         <tr>
           <td><span class="id-chip">${p.id}</span></td>
-          <td style="font-weight: 800; color: #0f172a;">${p.name}</td>
+          <td style="font-weight: 800; color: #0f172a;">${p.name || 'N/A'}</td>
           <td>
-            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name}')" title="Click to view full photo" />
+            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" />
           </td>
           <td>
             <a href="https://wa.me/${cleanPhone}" target="_blank" class="whatsapp-link">
-              <i class="fa-brands fa-whatsapp"></i> ${p.whatsapp || p.mobile}
+              <i class="fa-brands fa-whatsapp"></i> ${p.whatsapp || p.mobile || 'N/A'}
             </a>
           </td>
-          <td><b>${p.pickup}</b> → <b>${p.dropoff}</b></td>
+          <td><b>${p.pickup || 'N/A'}</b> → <b>${p.dropoff || 'N/A'}</b></td>
           <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${scheduleText || 'N/A'}</span></td>
           <td style="text-align: center; font-size: 13px; color: #475569; font-weight: 600;">
             <div>${timeText || 'N/A'}</div>
             <div style="margin-top: 4px;">
-              <button class="btn-action-update" onclick="openUpdateWorkingTimeModal('${p.id}', '${p.name}', '${p.time || ''}')" style="padding: 2px 8px; font-size: 11px;">
+              <button class="btn-action-update" onclick="openUpdateWorkingTimeModal('${p.id}', '${p.name || ''}', '${p.time || ''}')" style="padding: 2px 8px; font-size: 11px;">
                 <i class="fa-solid fa-pen"></i> Edit Shift
               </button>
             </div>
@@ -723,7 +733,7 @@ function renderMasterlistTable(data) {
           <td style="text-align: center; font-size: 12px;">
             ${balanceHtml}
             <div style="margin-top: 4px;">
-              <button class="btn-action-update" onclick="openUpdatePaymentDateModal('${p.id}', '${p.name}')" style="padding: 2px 8px; font-size: 11px;">
+              <button class="btn-action-update" onclick="openUpdatePaymentDateModal('${p.id}', '${p.name || ''}')" style="padding: 2px 8px; font-size: 11px;">
                 <i class="fa-solid fa-pen"></i> Add Pay
               </button>
             </div>
@@ -732,12 +742,13 @@ function renderMasterlistTable(data) {
             <span class="badge ${countdownClass}" style="padding: 6px 10px; border-radius: 6px; display: inline-block; font-weight: 700;">
               <i class="fa-solid fa-clock"></i> ${countdownText}
             </span>
+            ${waButtonHtml}
           </td>
           <td style="text-align: center;">
             ${statusBadgeHtml}
           </td>
           <td style="text-align: center;">
-            <button class="btn-action-delete" onclick="openDeleteModal('${p.id}', '${p.name}', 'passenger')">
+            <button class="btn-action-delete" onclick="openDeleteModal('${p.id}', '${p.name || ''}', 'passenger')">
               <i class="fa-solid fa-trash"></i> Delete
             </button>
           </td>
@@ -762,20 +773,17 @@ function changePendingPage(direction) {
   renderPendingTable(pendingList);
 }
 
-/* ================= DATE ONLY FORMATTER (DD-MM-YYYY) ================= */
+/* ================= DATE FORMATTERS ================= */
 function formatDateOnly(dateString) {
   if (!dateString) return 'N/A';
-  
   if (typeof dateString === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
     return dateString;
   }
 
   let dateObj = new Date(dateString);
   if (isNaN(dateObj.getTime())) {
-    const cleaned = dateString.replace(' ', 'T');
-    dateObj = new Date(cleaned);
+    dateObj = new Date(dateString.replace(' ', 'T'));
   }
-  
   if (isNaN(dateObj.getTime())) return dateString;
 
   const day = String(dateObj.getDate()).padStart(2, '0');
@@ -785,21 +793,18 @@ function formatDateOnly(dateString) {
   return `${day}-${month}-${year}`;
 }
 
-/* ================= HELPER: FORMAT MONTH ONLY ================= */
 function formatMonthOnly(dateString) {
   if (!dateString) return 'N/A';
-  
   let dateObj = new Date(dateString);
   if (isNaN(dateObj.getTime())) {
     dateObj = new Date(dateString.replace(' ', 'T'));
   }
-  
   if (isNaN(dateObj.getTime())) return dateString;
 
   return dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
-/* ================= PAGINATED PAYMENTS TABLE ================= */
+/* ================= PAYMENTS TABLE ================= */
 function filterPayments() {
   currentPaymentPage = 1;
   renderPaymentsTable(globalPaymentData);
@@ -819,11 +824,7 @@ function renderPaymentsTable(data) {
   displayData.sort((a, b) => {
     const dateA = new Date(a.payment_date || 0);
     const dateB = new Date(b.payment_date || 0);
-    
-    if (dateB - dateA !== 0) {
-      return dateB - dateA;
-    }
-    
+    if (dateB - dateA !== 0) return dateB - dateA;
     return (b.receipt_no || '').localeCompare(a.receipt_no || '');
   });
 
@@ -889,14 +890,14 @@ function renderPaymentsTable(data) {
   if (nextBtn) nextBtn.disabled = (currentPaymentPage === totalPages || totalPages === 0);
 }
 
-/* ================= PAGINATED REPORTS TABLE ================= */
+/* ================= REPORTS & CSV EXPORT ================= */
 async function loadReportsData() {
   try {
     const res = await fetch(`${API_BASE_URL}/reports/summary`, {
       headers: getAuthHeaders()
     });
     const data = await res.json();
-    if (data.success) {
+    if (data && data.success) {
       reportSummaryData = data;
       globalRouteData = data.routeRevenue || [];
       renderRouteReports(globalRouteData);
@@ -944,7 +945,6 @@ function renderRouteReports(routeData) {
   }
 }
 
-/* ================= CSV EXPORT FUNCTION FOR MANIFEST & PAYMENTS ================= */
 function downloadCSVReport(type) {
   let csvContent = "data:text/csv;charset=utf-8,";
 
@@ -974,19 +974,7 @@ function downloadCSVReport(type) {
       if (totalPaid >= 250) statusText = "Active (Fully Paid)";
       else if (totalPaid > 0) statusText = "Partial Payment";
 
-      const row = [
-        p.id,
-        cleanName,
-        cleanPhone,
-        cleanPickup,
-        cleanDropoff,
-        cleanSchedule,
-        cleanTime,
-        joinDate,
-        totalPaid,
-        balance,
-        statusText
-      ];
+      const row = [p.id, cleanName, cleanPhone, cleanPickup, cleanDropoff, cleanSchedule, cleanTime, joinDate, totalPaid, balance, statusText];
       csvContent += row.join(",") + "\n";
     });
 
@@ -1005,15 +993,7 @@ function downloadCSVReport(type) {
       const billMonth = pay.billing_month ? formatMonthOnly(pay.billing_month) : 'N/A';
       const formattedDate = pay.payment_date ? formatDateOnly(pay.payment_date) : 'N/A';
 
-      const row = [
-        pay.receipt_no,
-        pay.passenger_id,
-        passName,
-        `"${billMonth}"`,
-        pay.amount,
-        `"${pay.collector || 'Owner'}"`,
-        formattedDate
-      ];
+      const row = [pay.receipt_no, pay.passenger_id, passName, `"${billMonth}"`, pay.amount, `"${pay.collector || 'Owner'}"`, formattedDate];
       csvContent += row.join(",") + "\n";
     });
   }
@@ -1030,20 +1010,11 @@ function downloadCSVReport(type) {
   showToastNotification(`${type === 'passengers' ? 'Passenger Manifest' : 'Payments Report'} downloaded successfully!`);
 }
 
-/* ================= UPDATE WORKING TIME MODAL HANDLERS ================= */
-function openUpdateWorkingTimeModal(passengerId, passengerName, currentTime) {
+/* ================= WORKING TIME MODAL ================= */
+function openUpdateWorkingTimeModal(passengerId, passengerName) {
   pendingActionPassengerId = passengerId;
-  
   const nameElem = document.getElementById('workingTimePassengerName');
-  const idInput = document.getElementById('modalWorkingTimePassengerId');
-  const pTimeInput = document.getElementById('modalPickupTime');
-  const rTimeInput = document.getElementById('modalReturnTime');
-
   if (nameElem) nameElem.innerText = passengerName || passengerId;
-  if (idInput) idInput.value = passengerId;
-
-  if (pTimeInput) pTimeInput.value = '08:00';
-  if (rTimeInput) rTimeInput.value = '17:00';
 
   const modal = document.getElementById('updateWorkingTimeModal');
   if (modal) modal.classList.add('active');
@@ -1057,9 +1028,11 @@ function closeUpdateWorkingTimeModal() {
 
 async function confirmUpdateWorkingTime() {
   const passengerId = pendingActionPassengerId;
+  const pTimeInput = document.getElementById('modalPickupTime');
+  const rTimeInput = document.getElementById('modalReturnTime');
   
-  const pTimeVal = document.getElementById('modalPickupTime').value;
-  const rTimeVal = document.getElementById('modalReturnTime').value;
+  const pTimeVal = pTimeInput ? pTimeInput.value : '08:00';
+  const rTimeVal = rTimeInput ? rTimeInput.value : '17:00';
 
   if (!passengerId || !pTimeVal || !rTimeVal) {
     showToastNotification("Please select both morning and afternoon times.");
@@ -1075,11 +1048,7 @@ async function confirmUpdateWorkingTime() {
     return `${formattedHour}:${m} ${ampm}`;
   };
 
-  const pTime = formatTime(pTimeVal);
-  const rTime = formatTime(rTimeVal);
-  
-  const newWorkingTime = `${pTime} / ${rTime}`;
-
+  const newWorkingTime = `${formatTime(pTimeVal)} / ${formatTime(rTimeVal)}`;
   closeUpdateWorkingTimeModal();
 
   try {
@@ -1090,34 +1059,29 @@ async function confirmUpdateWorkingTime() {
     });
 
     const data = await res.json();
-    if (data.success) {
+    if (data && data.success) {
       showToastNotification(`Working time updated successfully!`);
       loadDashboard();
     } else {
       const targetPassenger = globalPassengerData.find(p => p.id === passengerId);
-      if (targetPassenger) {
-        targetPassenger.time = newWorkingTime;
-      }
+      if (targetPassenger) targetPassenger.time = newWorkingTime;
       renderMasterlistTable(globalPassengerData);
       showToastNotification(`Working time updated locally!`);
     }
   } catch (err) {
     const targetPassenger = globalPassengerData.find(p => p.id === passengerId);
-    if (targetPassenger) {
-      targetPassenger.time = newWorkingTime;
-    }
+    if (targetPassenger) targetPassenger.time = newWorkingTime;
     renderMasterlistTable(globalPassengerData);
     showToastNotification(`Working time updated successfully!`);
   }
 }
 
-/* ================= MODERN DOUGHNUT COLLECTION ANALYTICS CHART ================= */
+/* ================= CHART.JS ANALYTICS ================= */
 function initChart(passengersData, paymentsData) {
   const canvasElem = document.getElementById('revenueChart');
   if (!canvasElem) return;
 
   const ctx = canvasElem.getContext('2d');
-
   const totalCollected = paymentsData.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   const activePassengers = passengersData.filter(p => p.status === 'Active');
   const totalExpectedRevenue = activePassengers.length * 250;
@@ -1156,11 +1120,7 @@ function initChart(passengersData, paymentsData) {
           position: 'bottom',
           labels: {
             boxWidth: 12,
-            font: {
-              family: 'Inter, sans-serif',
-              size: 12,
-              weight: '600'
-            },
+            font: { family: 'Inter, sans-serif', size: 12, weight: '600' },
             color: '#334155'
           }
         },
@@ -1186,7 +1146,7 @@ function initChart(passengersData, paymentsData) {
   });
 }
 
-/* ================= QR CODE CAMERA SCANNER HANDLER ================= */
+/* ================= QR CODE SCANNER ================= */
 function openQRScannerModal() {
   const modal = document.getElementById('qrScannerModal');
   if (modal) {
@@ -1205,10 +1165,8 @@ function openQRScannerModal() {
       (decodedText) => {
         handleScannedQRCode(decodedText);
       },
-      (errorMessage) => {
-        // Scanning errors/frame drops can be safely ignored
-      }
-    ).catch(err => {
+      () => {}
+    ).catch(() => {
       showToastNotification("Unable to access camera for scanning.");
     });
   } else {
@@ -1245,14 +1203,10 @@ function closeQRResultModal() {
 }
 
 function handleScannedQRCode(scannedCode) {
-  // 1. Isara agad ang camera/scanner viewport
   stopQRScanner();
-
   if (!scannedCode) return;
 
   let cleanCode = scannedCode.trim();
-
-  // 2. Smart QR Parsing (JSON, URL, o Plain Text ID)
   try {
     if (cleanCode.startsWith('{')) {
       const parsed = JSON.parse(cleanCode);
@@ -1265,12 +1219,11 @@ function handleScannedQRCode(scannedCode) {
     console.warn("QR parsing fallback applied:", e);
   }
 
-  // 3. Hanapin ang pasahero sa globalPassengerData (Passenger List)
   const matchedPassenger = globalPassengerData.find(p => 
     (p.id && p.id.toLowerCase() === cleanCode.toLowerCase()) ||
     (p.name && p.name.toLowerCase() === cleanCode.toLowerCase()) ||
-    (p.whatsapp && p.whatsapp.includes(cleanCode)) ||
-    (p.mobile && p.mobile.includes(cleanCode))
+    (p.whatsapp && String(p.whatsapp).includes(cleanCode)) ||
+    (p.mobile && String(p.mobile).includes(cleanCode))
   );
 
   if (matchedPassenger) {
@@ -1284,31 +1237,25 @@ function handleScannedQRCode(scannedCode) {
     const balanceElem = document.getElementById('qrScanBalance');
     const countdownElem = document.getElementById('qrScanCountdown');
 
-    // Populate Basic Profile Data
     if (photoElem) photoElem.src = matchedPassenger.photo || defaultAvatar;
-    if (nameElem) nameElem.innerText = `${matchedPassenger.name} (${matchedPassenger.id})`;
+    if (nameElem) nameElem.innerText = `${matchedPassenger.name || 'N/A'} (${matchedPassenger.id || 'N/A'})`;
     if (phoneElem) phoneElem.innerText = matchedPassenger.whatsapp || matchedPassenger.mobile || 'No Phone';
 
-    // 4. Hanapin ang LATEST PAYMENT ng pasahero mula sa globalPaymentData
     const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === matchedPassenger.id);
     let lastPayDateStr = null;
     let latestPaymentText = "No payment record";
 
     if (passengerPayments.length > 0) {
-      // I-sort mula sa pinakabagong payment date
       passengerPayments.sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
       const latestPay = passengerPayments[0];
-      
       lastPayDateStr = latestPay.payment_date;
-      const formattedLatestDate = formatDateOnly(lastPayDateStr);
-      latestPaymentText = `AED ${latestPay.amount} (${formattedLatestDate})`;
+      latestPaymentText = `AED ${latestPay.amount} (${formatDateOnly(lastPayDateStr)})`;
     }
 
     if (!lastPayDateStr) {
       lastPayDateStr = matchedPassenger.last_payment_date || matchedPassenger.join_date || matchedPassenger.created_at;
     }
 
-    // 5. Compute 25-Day Cycle
     let daysLeft = 0;
     let isExpired = false;
     let countdownText = 'Expired / Overdue';
@@ -1334,7 +1281,6 @@ function handleScannedQRCode(scannedCode) {
     const effectivePaid = isExpired ? 0 : totalPaid;
     const remainingBalance = Math.max(0, 250 - effectivePaid);
 
-    // Status Badge Formatting
     if (statusBadgeElem) {
       if (totalPaid >= 250 && !isExpired) {
         statusBadgeElem.className = 'badge badge-active';
@@ -1358,15 +1304,12 @@ function handleScannedQRCode(scannedCode) {
     if (balanceElem) balanceElem.innerText = `AED ${remainingBalance}`;
     if (countdownElem) countdownElem.innerText = countdownText;
 
-    // 6. Buksan ang Passenger Verified Profile Modal
     const resultModal = document.getElementById('qrResultModal');
     if (resultModal) {
       resultModal.classList.add('active');
       resultModal.style.display = 'flex';
     }
-
   } else {
-    // Kapag wala sa Passenger List Database
     showToastNotification(`Scanned Code: "${cleanCode}" - No matching passenger found in Passenger List.`);
   }
 }
@@ -1384,5 +1327,6 @@ function closeLogoutModal() {
 
 function confirmLogout() {
   localStorage.removeItem('carlift_admin_token');
+  localStorage.removeItem('supabase_admin_token');
   window.location.href = 'login.html';
 }
