@@ -936,7 +936,7 @@ function renderMasterlistTable(data) {
         statusBadgeHtml = `<span class="badge" style="background: #fee2e2; color: #ef4444; font-weight: 700; padding: 6px 10px; border-radius: 6px;">Inactive</span>`;
       }
 
-      // ================= SMART WHATSAPP REMINDER BUTTON =================
+      // SMART WHATSAPP REMINDER BUTTON
       let waButtonHtml = '';
       if (daysLeft <= 3) {
         const passName = p.name || 'Passenger';
@@ -1057,7 +1057,7 @@ function formatMonthOnly(dateString) {
   return dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
-/* ================= PAYMENTS TABLE (PINAKA LATEST SA UNA) ================= */
+/* ================= PAYMENTS TABLE (LATEST ON TOP) ================= */
 function filterPayments() {
   currentPaymentPage = 1;
   renderPaymentsTable(globalPaymentData);
@@ -1074,7 +1074,6 @@ function renderPaymentsTable(data) {
   
   let displayData = [...data];
 
-  // Sorting: Pinaka-latest na payment date at receipt no ang nauuna sa itaas
   displayData.sort((a, b) => {
     const dateA = new Date(a.payment_date || 0);
     const dateB = new Date(b.payment_date || 0);
@@ -1496,7 +1495,6 @@ function handleScannedQRCode(scannedCode) {
     if (nameElem) nameElem.innerText = `${matchedPassenger.name || 'N/A'} (${matchedPassenger.id || 'N/A'})`;
     if (phoneElem) phoneElem.innerText = matchedPassenger.whatsapp || matchedPassenger.mobile || 'No Phone';
 
-    // Ikabit ang Update Pay button action para direkta sa modal
     if (updatePayBtn) {
       updatePayBtn.onclick = () => {
         closeQRResultModal();

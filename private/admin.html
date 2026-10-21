@@ -1,1468 +1,802 @@
-/* ================= CONFIGURATION & GLOBALS ================= */
-const API_BASE_URL = '/api';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carlift OS - Operating System</title>
 
-let globalPassengerData = [];
-let globalPaymentData = [];
-let globalRouteData = [];
-let reportSummaryData = null;
-let revenueChartInstance = null;
-let maxVanCapacity = Number(localStorage.getItem('carlift_max_capacity')) || 14;
-
-// PAGINATION STATES (ITEMS PER PAGE = 6)
-const ITEMS_PER_PAGE = 6;
-let currentPassengerPage = 1;
-let currentPaymentPage = 1;
-let currentReportPage = 1;
-let currentPendingPage = 1;
-
-// TEMPORARY ID STORAGE PARA SA MODALS
-let pendingActionPassengerId = null;
-let currentDeleteContext = 'passenger'; // 'passenger' or 'approval'
-
-// GLOBAL TIMERS PARA SA AUTO-CLOSE NG NOTIFICATIONS AT SUCCESS RECEIPTS
-let customAlertTimer = null;
-let receiptTimer = null;
-
-// QR SCANNER INSTANCE
-let html5QrCodeScanner = null;
-
-// HELPER: GET AUTH HEADERS
-function getAuthHeaders() {
-  const token = localStorage.getItem('carlift_admin_token') || localStorage.getItem('supabase_admin_token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Security Check
-  const token = localStorage.getItem('carlift_admin_token') || localStorage.getItem('supabase_admin_token');
-  if (!token) {
-    window.location.href = 'login.html';
-    return;
-  }
-
-  // Set Capacity Input field if present
-  const capInput = document.getElementById('settingCapacityInput');
-  if (capInput) capInput.value = maxVanCapacity;
-
-  // Initial Load
-  loadDashboard();
-
-  // Auto Refresh Every 5 Seconds (Live Sync)
-  setInterval(loadDashboard, 5000);
-
-  // GLOBAL ESCAPE KEY LISTENER
-  window.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-      closePaymentModal();
-      closeUpdatePaymentDateModal();
-      closeSuccessReceiptModal();
-      closeImageModal();
-      closeVerifyModal();
-      closeDeleteModal();
-      closeLogoutModal();
-      closeCustomAlertModal();
-      closeUpdateWorkingTimeModal();
-      closeQRScannerModal();
-      closeQRResultModal();
-    }
-  });
-
-  // CLICK OUTSIDE BACKDROP TO CLOSE MODALS
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) {
-      if (e.target === this) {
-        this.classList.remove('active');
-        this.style.display = 'none';
-        if (this.id === 'successReceiptModal') {
-          if (typeof loadDashboard === 'function') loadDashboard();
-        }
-        if (this.id === 'qrScannerModal' || this.id === 'view-qrscanner') {
-          stopQRScanner();
-        }
-      }
-    });
-  });
-});
-
-// MOBILE SIDEBAR TOGGLE
-function toggleMobileSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  if (sidebar && overlay) {
-    sidebar.classList.toggle('active');
-    overlay.classList.toggle('active');
-  }
-}
-
-// TAB NAVIGATION
-function switchTab(tabName, event) {
-  document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-
-  const targetSection = document.getElementById(`view-${tabName}`);
-  if (targetSection) targetSection.classList.add('active');
-
-  if (event && event.currentTarget) {
-    event.currentTarget.classList.add('active');
-  }
-
-  // Close mobile sidebar if open
-  const sidebar = document.getElementById('sidebar');
-  if (sidebar && sidebar.classList.contains('active')) {
-    toggleMobileSidebar();
-  }
-
-  if (tabName === 'reports') {
-    loadReportsData();
-  }
-}
-
-// CLOSE QR SCANNER VIEW
-function closeQRScannerView() {
-  stopQRScanner();
-  switchTab('dashboard', null);
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  const dashNav = document.querySelector('.nav-menu .nav-item');
-  if (dashNav) dashNav.classList.add('active');
-}
-
-// UPDATE VAN CAPACITY SETTING
-function updateVanCapacitySetting(val) {
-  const num = Number(val);
-  if (num > 0) {
-    maxVanCapacity = num;
-    localStorage.setItem('carlift_max_capacity', num);
-    updateKPIsAndCategorizedBadges(globalPassengerData, globalPaymentData);
-  }
-}
-
-// MAIN DASHBOARD DATA LOADER
-async function loadDashboard() {
-  try {
-    const res = await fetch(`${API_BASE_URL}/reports/summary`, {
-      headers: getAuthHeaders()
-    });
-
-    if (res.status === 401 || res.status === 403) {
-      localStorage.removeItem('carlift_admin_token');
-      localStorage.removeItem('supabase_admin_token');
-      window.location.href = 'login.html';
-      return;
-    }
-
-    const data = await res.json();
-
-    if (data && data.success) {
-      reportSummaryData = data;
-      globalPassengerData = data.passengers || [];
-      globalPaymentData = data.payments || [];
-
-      updateKPIsAndCategorizedBadges(globalPassengerData, globalPaymentData);
-      renderPendingTable(globalPassengerData.filter(p => p.status === 'Pending Payment'));
-      renderMasterlistTable(globalPassengerData);
-      renderCategorizedTables(globalPassengerData);
-      renderPaymentsTable(globalPaymentData);
-      initChart(globalPassengerData, globalPaymentData);
-    }
-  } catch (err) {
-    console.error("Error loading dashboard data:", err);
-  }
-}
-
-function updateKPIsAndCategorizedBadges(passengers, payments) {
-  const activeCount = passengers.filter(p => p.status === 'Active').length;
-  const pendingCount = passengers.filter(p => p.status === 'Pending Payment').length;
-  const totalRev = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-  const seatsAvailable = Math.max(0, maxVanCapacity - activeCount);
-  const occupancyPercent = maxVanCapacity > 0 ? Math.min(Math.round((activeCount / maxVanCapacity) * 100), 100) : 0;
-
-  if (document.getElementById('kpiActiveCount')) document.getElementById('kpiActiveCount').innerText = activeCount;
-  if (document.getElementById('kpiPendingCount')) document.getElementById('kpiPendingCount').innerText = pendingCount;
-  if (document.getElementById('pendingBadgeCount')) document.getElementById('pendingBadgeCount').innerText = `${pendingCount} Pending`;
-  if (document.getElementById('kpiRevenue')) document.getElementById('kpiRevenue').innerText = `AED ${totalRev.toLocaleString()}`;
-  if (document.getElementById('kpiOccupancyRate')) document.getElementById('kpiOccupancyRate').innerText = `${occupancyPercent}%`;
-  if (document.getElementById('kpiSeatsAvailableText')) document.getElementById('kpiSeatsAvailableText').innerText = `${seatsAvailable} Seats Available`;
-
-  // COMPUTATION NG FULL PAID, PARTIAL, AT UNPAID CATEGORIES
-  let fullPaidCount = 0;
-  let partialCount = 0;
-  let unpaidCount = 0;
-
-  passengers.forEach(p => {
-    if (p.status !== 'Pending Payment') {
-      const passengerPayments = payments.filter(pay => pay.passenger_id === p.id);
-      let lastPayDateStr = passengerPayments.length > 0 ? passengerPayments[0].payment_date : (p.last_payment_date || p.join_date);
-
-      let isExpired = false;
-      if (lastPayDateStr) {
-        const diffTime = new Date() - new Date(lastPayDateStr);
-        const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if (25 - daysPassed < 0) isExpired = true;
-      } else {
-        isExpired = true;
-      }
-
-      const totalPaid = Number(p.total_paid) || 0;
-      const effectivePaid = isExpired ? 0 : totalPaid;
-
-      if (effectivePaid >= 250) fullPaidCount++;
-      else if (effectivePaid > 0) partialCount++;
-      else unpaidCount++;
-    }
-  });
-
-  updateBadge('fbFullPaidBadge', fullPaidCount);
-  updateBadge('fbPartialBadge', partialCount);
-  updateBadge('fbUnpaidBadge', unpaidCount);
-  updateBadge('fbAwaitingBadge', pendingCount);
-}
-
-function updateBadge(id, count) {
-  const elem = document.getElementById(id);
-  if (elem) {
-    if (count > 0) {
-      elem.innerText = count;
-      elem.style.display = 'inline-block';
-    } else {
-      elem.style.display = 'none';
-    }
-  }
-}
-
-/* ================= RENDER CATEGORIZED TABLES (FULL PAID, PARTIAL, UNPAID) - WALANG ROUTE AT WORKING TIME, CLICKABLE PHOTO ================= */
-function renderCategorizedTables(passengers) {
-  const fullPaidBody = document.getElementById('fullPaidTableBody');
-  const partialBody = document.getElementById('partialTableBody');
-  const unpaidBody = document.getElementById('unpaidTableBody');
-
-  if (fullPaidBody) fullPaidBody.innerHTML = '';
-  if (partialBody) partialBody.innerHTML = '';
-  if (unpaidBody) unpaidBody.innerHTML = '';
-
-  passengers.forEach(p => {
-    if (p.status !== 'Pending Payment') {
-      const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
-      const photoSrc = p.photo || defaultAvatar;
-
-      const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
-      let lastPayDateStr = passengerPayments.length > 0 ? passengerPayments[0].payment_date : (p.last_payment_date || p.join_date);
-
-      let daysLeft = 0;
-      let isExpired = false;
-      if (lastPayDateStr) {
-        const diffTime = new Date() - new Date(lastPayDateStr);
-        daysLeft = 25 - Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if (daysLeft < 0) isExpired = true;
-      } else {
-        isExpired = true;
-      }
-
-      const totalPaid = Number(p.total_paid) || 0;
-      const effectivePaid = isExpired ? 0 : totalPaid;
-      const remainingBalance = Math.max(0, 250 - effectivePaid);
-
-      const cleanPhone = p.whatsapp ? String(p.whatsapp).replace(/[^0-9]/g, '') : '';
-      let waButtonHtml = '';
-      if (daysLeft <= 3) {
-        const waText = encodeURIComponent(`Hi ${p.name || 'Passenger'}! Paalala mula sa Carlift OS: Ang iyong carlift subscription ay ${daysLeft < 0 ? 'Expired na' : daysLeft === 0 ? 'Due today na' : 'mag-eexpire sa loob ng ' + daysLeft + ' araw'}. Paki-settle ang AED 250. Salamat!`);
-        waButtonHtml = `
-          <a href="https://wa.me/${cleanPhone}?text=${waText}" target="_blank" style="background:#25d366; color:#fff; padding:3px 8px; font-size:11px; font-weight:700; text-decoration:none; border-radius:4px; display:inline-flex; align-items:center; gap:4px; margin-top:4px;">
-            <i class="fa-brands fa-whatsapp"></i> Send WA
-          </a>
-        `;
-      }
-
-      // FULL PAID ROW
-      if (effectivePaid >= 250 && fullPaidBody) {
-        fullPaidBody.innerHTML += `
-          <tr>
-            <td><span class="id-chip">${p.id}</span></td>
-            <td><b>${p.name}</b></td>
-            <td><img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" /></td>
-            <td>${p.whatsapp || p.mobile || 'N/A'}</td>
-            <td><span style="color:#10b981; font-weight:800;">AED ${effectivePaid}</span></td>
-            <td><span class="badge badge-active">${daysLeft} Days Left</span></td>
-            <td><span class="badge badge-active">Full Paid</span></td>
-          </tr>
-        `;
-      }
-      // PARTIAL ROW
-      else if (effectivePaid > 0 && partialBody) {
-        partialBody.innerHTML += `
-          <tr>
-            <td><span class="id-chip">${p.id}</span></td>
-            <td><b>${p.name}</b></td>
-            <td><img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" /></td>
-            <td>${p.whatsapp || p.mobile || 'N/A'}</td>
-            <td><span style="color:#d97706; font-weight:700;">Paid: AED ${effectivePaid}<br><b style="color:#ef4444;">Bal: AED ${remainingBalance}</b></span></td>
-            <td><span class="badge badge-warning">${daysLeft >= 0 ? daysLeft + ' Days Left' : 'Expired'}</span><br>${waButtonHtml}</td>
-            <td><button class="btn-action-update" onclick="openUpdatePaymentDateModal('${p.id}', '${p.name}')">Add Pay</button></td>
-          </tr>
-        `;
-      }
-      // UNPAID ROW
-      else if (unpaidBody) {
-        unpaidBody.innerHTML += `
-          <tr>
-            <td><span class="id-chip">${p.id}</span></td>
-            <td><b>${p.name}</b></td>
-            <td><img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" /></td>
-            <td>${p.whatsapp || p.mobile || 'N/A'}</td>
-            <td><span style="color:#ef4444; font-weight:800;">AED 250 Due</span></td>
-            <td><span class="badge badge-danger">${isExpired ? 'Expired / Overdue' : daysLeft + ' Days Left'}</span><br>${waButtonHtml}</td>
-            <td><button class="btn-action-update" onclick="openUpdatePaymentDateModal('${p.id}', '${p.name}')">Record Pay</button></td>
-          </tr>
-        `;
-      }
-    }
-  });
-}
-
-function renderPendingTable(pendingList) {
-  const pendingBody = document.getElementById('pendingTableBody');
-  if (!pendingBody) return;
-
-  const totalItems = pendingList.length;
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
-
-  if (currentPendingPage < 1) currentPendingPage = 1;
-  if (currentPendingPage > totalPages) currentPendingPage = totalPages;
-
-  const startIndex = (currentPendingPage - 1) * ITEMS_PER_PAGE;
-  const paginatedData = pendingList.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  pendingBody.innerHTML = '';
-
-  if (paginatedData.length === 0) {
-    pendingBody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 24px; color:#94a3b8; font-weight: 700;">No pending cash approvals. All clear!</td></tr>';
-  } else {
-    paginatedData.forEach(p => {
-      const cleanPhone = p.whatsapp ? String(p.whatsapp).replace(/[^0-9]/g, '') : '';
-      const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
-      const photoSrc = p.photo || defaultAvatar;
-
-      let scheduleText = p.schedule || '';
-      let timeText = p.time || '';
-
-      if (scheduleText.includes('|')) {
-        const parts = scheduleText.split('|');
-        scheduleText = parts[0].trim();
-        if (!timeText || timeText === 'N/A') {
-          timeText = parts[1].trim();
-        }
-      }
-
-      if (scheduleText) scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      if (timeText) timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-
-      const rawDateToFormat = p.join_date || p.created_at;
-      const joinedDateFormatted = rawDateToFormat ? formatDateOnly(rawDateToFormat) : 'N/A';
-
-      const row = `
-        <tr>
-          <td><span class="id-chip">${p.id}</span></td>
-          <td style="font-weight: 800; color: #0f172a;">${p.name || 'N/A'}</td>
-          <td>
-            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" />
-          </td>
-          <td>
-            <a href="https://wa.me/${cleanPhone}" target="_blank" class="whatsapp-link">
-              <i class="fa-brands fa-whatsapp"></i> ${p.whatsapp || p.mobile || 'N/A'}
-            </a>
-          </td>
-          <td><b>${p.pickup || 'N/A'}</b> → <b>${p.dropoff || 'N/A'}</b></td>
-          <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${scheduleText || 'N/A'}</span></td>
-          <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${timeText || 'N/A'}</span></td>
-          <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${joinedDateFormatted}</span></td>
-          <td><span class="badge badge-pending">${p.status || 'Pending'}</span></td>
-          <td>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <button class="btn-action-approve" onclick="openVerifyModal('${p.id}', '${p.name || ''}')">
-                <i class="fa-solid fa-circle-check"></i> Approve
-              </button>
-              <button class="btn-action-delete" onclick="openDeleteModal('${p.id}', '${p.name || ''}', 'approval')">
-                <i class="fa-solid fa-trash"></i> Delete
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-      pendingBody.innerHTML += row;
-    });
-  }
-
-  const infoElem = document.getElementById('pendingPageInfo');
-  const prevBtn = document.getElementById('btnPrevPending');
-  const nextBtn = document.getElementById('btnNextPending');
-
-  if (infoElem) infoElem.innerText = `Showing page ${currentPendingPage} of ${totalPages} (${totalItems} pending requests)`;
-  if (prevBtn) prevBtn.disabled = (currentPendingPage === 1);
-  if (nextBtn) nextBtn.disabled = (currentPendingPage === totalPages || totalPages === 0);
-}
-
-/* ================= PASSENGER PHOTO MODAL HANDLERS ================= */
-function openImageModal(imgSrc, passengerName) {
-  const imgPreview = document.getElementById('imageModalPreview');
-  const titleElem = document.getElementById('imageModalTitle');
-  if (imgPreview) imgPreview.src = imgSrc;
-  if (titleElem) titleElem.innerHTML = `<i class="fa-solid fa-user"></i> ${passengerName || 'Passenger Photo'}`;
-  const modal = document.getElementById('imageModal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeImageModal() {
-  const modal = document.getElementById('imageModal');
-  if (modal) modal.classList.remove('active');
-}
-
-/* ================= CUSTOM APPROVE & DELETE MODAL HANDLERS ================= */
-function openVerifyModal(passengerId, passengerName) {
-  pendingActionPassengerId = passengerId;
-  const nameElem = document.getElementById('verifyModalPassengerName');
-  if (nameElem) nameElem.innerText = passengerName || passengerId;
+  <!-- FAVICON -->
+  <link rel="icon" type="image/jpeg" href="/images/MS Logo For My System.jpeg">
   
-  const modal = document.getElementById('verifyModal');
-  if (modal) modal.classList.add('active');
-}
+  <!-- External Fonts & FontAwesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="../css/admin.css">
 
-function closeVerifyModal() {
-  pendingActionPassengerId = null;
-  const modal = document.getElementById('verifyModal');
-  if (modal) modal.classList.remove('active');
-}
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-async function confirmVerifyPayment() {
-  if (!pendingActionPassengerId) return;
-  const passengerId = pendingActionPassengerId;
-  closeVerifyModal();
+  <!-- HTML5 QR Code Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/passengers/${passengerId}/status`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ status: 'Active' })
-    });
+  <!-- SUPABASE CLIENT CDN PARA SA FRONTEND AUTH CHECK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
 
-    const data = await res.json();
-    if (data && data.success) {
-      showToastNotification(`Passenger approved and moved to Passenger List!`);
-      loadDashboard();
-    } else {
-      showToastNotification(`Error: ${(data && data.message) || 'Approval failed.'}`);
-    }
-  } catch (err) {
-    showToastNotification("Failed to connect to server.");
-  }
-}
-
-function openDeleteModal(passengerId, passengerName, context = 'passenger') {
-  pendingActionPassengerId = passengerId;
-  currentDeleteContext = context;
-
-  const titleElem = document.getElementById('deleteModalTitle');
-  const nameElem = document.getElementById('deleteModalPassengerName');
-
-  if (nameElem) nameElem.innerText = passengerName || passengerId;
-
-  if (titleElem) {
-    titleElem.innerHTML = context === 'approval' 
-      ? `<i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Delete Approval`
-      : `<i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Delete Passenger`;
-  }
-
-  const modal = document.getElementById('deleteModal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeDeleteModal() {
-  pendingActionPassengerId = null;
-  currentDeleteContext = 'passenger';
-  const modal = document.getElementById('deleteModal');
-  if (modal) modal.classList.remove('active');
-}
-
-async function confirmDeletePassenger() {
-  if (!pendingActionPassengerId) return;
-  const passengerId = pendingActionPassengerId;
-  closeDeleteModal();
-
-  try {
-    await fetch(`${API_BASE_URL}/passengers/${passengerId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    });
-  } catch (err) {
-    console.warn("Offline or server error, deleting from local array:", err);
-  }
-
-  globalPassengerData = globalPassengerData.filter(p => p.id !== passengerId);
-  
-  updateKPIsAndCategorizedBadges(globalPassengerData, globalPaymentData);
-  renderMasterlistTable(globalPassengerData);
-  renderCategorizedTables(globalPassengerData);
-  renderPendingTable(globalPassengerData.filter(p => p.status === 'Pending Payment'));
-  
-  const successMsg = currentDeleteContext === 'approval' 
-    ? "Approval successfully removed from system record." 
-    : "Passenger successfully removed from passenger list.";
-
-  showToastNotification(successMsg);
-}
-
-/* ================= UPDATE PAYMENT DATE & PARTIAL AMOUNT MODAL HANDLERS ================= */
-function openUpdatePaymentDateModal(passengerId, passengerName) {
-  pendingActionPassengerId = passengerId;
-  
-  const nameElem = document.getElementById('updateModalPassengerName');
-  const idInput = document.getElementById('modalUpdatePassengerId');
-  const dateInput = document.getElementById('modalNewPaymentDate');
-  const amountInput = document.getElementById('modalPartialAmount');
-
-  if (nameElem) nameElem.innerText = passengerName || passengerId;
-  if (idInput) idInput.value = passengerId;
-  if (amountInput) amountInput.value = '250';
-  
-  if (dateInput) {
-    dateInput.value = new Date().toISOString().slice(0, 10);
-  }
-
-  const modal = document.getElementById('updatePaymentDateModal');
-  if (modal) modal.classList.add('active');
-}
-
-function setModalAmount(amount) {
-  const amountInput = document.getElementById('modalPartialAmount');
-  if (amountInput) {
-    amountInput.value = amount;
-  }
-}
-
-function closeUpdatePaymentDateModal() {
-  pendingActionPassengerId = null;
-  const modal = document.getElementById('updatePaymentDateModal');
-  if (modal) modal.classList.remove('active');
-}
-
-async function confirmUpdatePaymentDate() {
-  const passengerId = pendingActionPassengerId;
-  const dateInput = document.getElementById('modalNewPaymentDate');
-  const amountInput = document.getElementById('modalPartialAmount');
-  
-  const newDateValue = dateInput ? dateInput.value : '';
-  const paidAmount = amountInput ? Number(amountInput.value) : 250;
-  const billingMonth = newDateValue || new Date().toISOString().slice(0, 10);
-
-  if (!passengerId || !newDateValue) {
-    showToastNotification("Please select a valid payment date.");
-    return;
-  }
-
-  if (paidAmount <= 0) {
-    showToastNotification("Please enter a valid amount.");
-    return;
-  }
-
-  closeUpdatePaymentDateModal();
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/record-payment`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ 
-        passengerId: passengerId, 
-        amount: paidAmount, 
-        collector: 'Owner Update',
-        payment_date: newDateValue,
-        billing_month: billingMonth 
-      })
-    });
-
-    const data = await res.json();
-    if (data && data.success) {
-      showToastNotification(`Payment of AED ${paidAmount} recorded successfully! Receipt #${data.receiptNo}`);
-      loadDashboard();
+  <!-- SECURITY CHECK SCRIPT: Sisiguraduhing may token bago tuluyang ipakita ang UI -->
+  <script>
+    (async function() {
+      const token = localStorage.getItem('supabase_admin_token') || sessionStorage.getItem('supabase_admin_token') || localStorage.getItem('carlift_admin_token');
       
-      if (typeof triggerSuccessReceiptTimer === 'function') {
-        triggerSuccessReceiptTimer(data.receiptNo, paidAmount, 'Owner Update');
+      if (!token) {
+        window.location.href = '/login.html';
+        return;
       }
-    } else {
-      showToastNotification((data && data.message) || 'Failed to update payment date.');
-    }
-  } catch (err) {
-    showToastNotification("Server error while recording payment.");
-  }
-}
+    })();
+  </script>
 
-/* ================= SUCCESS RECEIPT MODAL CONTROLS ================= */
-function triggerSuccessReceiptTimer(receiptNo, amount, collector) {
-  const modal = document.getElementById('successReceiptModal');
-  const countdownNum = document.getElementById('receiptCountdownNum');
-  const nameSpan = document.getElementById('receiptPassengerName');
-  const amountSpan = document.getElementById('receiptAmount');
-  const collectorSpan = document.getElementById('receiptCollector');
+  <!-- Backdrop overlay for mobile drawer -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
 
-  if (!modal) return;
-
-  if (nameSpan) nameSpan.innerText = pendingActionPassengerId || '-';
-  if (amountSpan) amountSpan.innerText = `AED ${amount}`;
-  if (collectorSpan) collectorSpan.innerText = collector || 'Owner';
-
-  if (receiptTimer) {
-    clearInterval(receiptTimer);
-    receiptTimer = null;
-  }
-
-  modal.style.display = 'flex';
-  let timeLeft = 3;
-  if (countdownNum) countdownNum.innerText = timeLeft;
-
-  receiptTimer = setInterval(() => {
-    timeLeft--;
-    if (countdownNum) countdownNum.innerText = timeLeft;
-    if (timeLeft <= 0) {
-      clearInterval(receiptTimer);
-      receiptTimer = null;
-      closeSuccessReceiptModal();
-    }
-  }, 1000);
-}
-
-function closeSuccessReceiptModal() {
-  const modal = document.getElementById('successReceiptModal');
-  if (modal) modal.style.display = 'none';
-  if (receiptTimer) {
-    clearInterval(receiptTimer);
-    receiptTimer = null;
-  }
-  loadDashboard();
-}
-
-/* ================= CUSTOM TOAST NOTIFICATION ================= */
-function showToastNotification(message) {
-  let alertModal = document.getElementById('customAlertModal');
-  if (!alertModal) {
-    alertModal = document.createElement('div');
-    alertModal.id = 'customAlertModal';
-    alertModal.className = 'modal-overlay';
-    alertModal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;";
-    alertModal.innerHTML = `
-      <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <div style="font-size: 38px; color: #10b981; margin-bottom: 10px;"><i class="fa-solid fa-circle-check"></i></div>
-        <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 8px;">System Notification</h3>
-        <p id="customAlertMessage" style="font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.5;"></p>
-        <button type="button" onclick="closeCustomAlertModal()" style="padding: 10px 24px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">OK</button>
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <div>
+      <!-- BRAND LOGO WITH MS LOGO IMAGE -->
+      <div class="brand">
+        <img src="/images/MS Logo For My System.jpeg" alt="MS Logo" class="admin-brand-logo">
+        <span>Carlift OS</span>
       </div>
-    `;
-    document.body.appendChild(alertModal);
-  }
 
-  const msgElem = document.getElementById('customAlertMessage');
-  if (msgElem) msgElem.innerText = message;
-  alertModal.classList.add('active');
-  alertModal.style.display = 'flex';
-
-  if (customAlertTimer) {
-    clearTimeout(customAlertTimer);
-    customAlertTimer = null;
-  }
-
-  customAlertTimer = setTimeout(() => {
-    closeCustomAlertModal();
-  }, 3000);
-}
-
-function closeCustomAlertModal() {
-  const alertModal = document.getElementById('customAlertModal');
-  if (alertModal) {
-    alertModal.classList.remove('active');
-    alertModal.style.display = 'none';
-  }
-  if (customAlertTimer) {
-    clearTimeout(customAlertTimer);
-    customAlertTimer = null;
-  }
-}
-
-/* ================= PASSENGERS TABLE & 25-DAY CYCLE WITH WHATSAPP REMINDER BUTTON ================= */
-function filterPassengers() {
-  currentPassengerPage = 1;
-  renderMasterlistTable(globalPassengerData);
-}
-
-function changePassengersPage(direction) {
-  currentPassengerPage += direction;
-  renderMasterlistTable(globalPassengerData);
-}
-
-function renderMasterlistTable(data) {
-  const searchElem = document.getElementById('passengerSearch');
-  const searchQuery = searchElem ? searchElem.value.toLowerCase() : '';
-  
-  let displayData = data.filter(p => p.status === 'Active' || p.status !== 'Pending Payment');
-
-  if (searchQuery) {
-    displayData = displayData.filter(p => 
-      (p.name && p.name.toLowerCase().includes(searchQuery)) ||
-      (p.mobile && p.mobile.includes(searchQuery)) ||
-      (p.whatsapp && p.whatsapp.includes(searchQuery)) ||
-      (p.pickup && p.pickup.toLowerCase().includes(searchQuery)) ||
-      (p.dropoff && p.dropoff.toLowerCase().includes(searchQuery)) ||
-      (p.id && p.id.toLowerCase().includes(searchQuery))
-    );
-  }
-
-  const totalItems = displayData.length;
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
-
-  if (currentPassengerPage < 1) currentPassengerPage = 1;
-  if (currentPassengerPage > totalPages) currentPassengerPage = totalPages;
-
-  const startIndex = (currentPassengerPage - 1) * ITEMS_PER_PAGE;
-  const paginatedData = displayData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  const masterBody = document.getElementById('allPassengersTableBody');
-  if (!masterBody) return;
-
-  masterBody.innerHTML = '';
-
-  if (paginatedData.length === 0) {
-    masterBody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 30px; color:#94a3b8; font-weight:700;">No active passengers found.</td></tr>';
-  } else {
-    paginatedData.forEach(p => {
-      const cleanPhone = p.whatsapp ? String(p.whatsapp).replace(/[^0-9]/g, '') : '';
-      const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
-      const photoSrc = p.photo || defaultAvatar;
-
-      let scheduleText = p.schedule || '';
-      let timeText = p.time || '';
-
-      if (scheduleText.includes('|')) {
-        const parts = scheduleText.split('|');
-        scheduleText = parts[0].trim();
-        if (!timeText || timeText === 'N/A') {
-          timeText = parts[1].trim();
-        }
-      }
-
-      if (scheduleText) scheduleText = scheduleText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-      if (timeText) timeText = timeText.replace(/pickup/gi, '').replace(/return/gi, '').trim();
-
-      const rawDateToFormat = p.join_date || p.created_at;
-      const joinedDateFormatted = rawDateToFormat ? formatDateOnly(rawDateToFormat) : 'N/A';
-      
-      const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === p.id);
-      let lastPayDateStr = null;
-      if (passengerPayments.length > 0) {
-        passengerPayments.sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
-        lastPayDateStr = passengerPayments[0].payment_date;
-      }
-
-      if (!lastPayDateStr) {
-        lastPayDateStr = p.last_payment_date || p.join_date || p.created_at;
-      }
-
-      let daysLeft = 0;
-      let isExpired = false;
-      let countdownClass = 'badge-danger';
-      let countdownText = 'Expired / Overdue';
-
-      if (lastPayDateStr) {
-        const payDate = new Date(lastPayDateStr);
-        const today = new Date();
-        const diffTime = today - payDate;
-        const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        daysLeft = 25 - daysPassed;
-
-        if (daysLeft > 5) {
-          countdownClass = 'badge-active';
-          countdownText = `${daysLeft} Days Left`;
-        } else if (daysLeft >= 0) {
-          countdownClass = 'badge-warning';
-          countdownText = `${daysLeft} Days Left`;
-        } else {
-          isExpired = true;
-          countdownClass = 'badge-danger';
-          countdownText = `Expired / Overdue`;
-        }
-      } else {
-        isExpired = true;
-      }
-
-      let rawTotalPaid = Number(p.total_paid) || 0;
-      let effectivePaid = isExpired ? 0 : rawTotalPaid; 
-      let remainingBalance = Math.max(0, 250 - effectivePaid);
-
-      let balanceHtml = '';
-      let statusBadgeHtml = '';
-
-      if (effectivePaid >= 250) {
-        balanceHtml = `<span style="color: #10b981; font-weight: 800; background: #ecfdf5; padding: 4px 8px; border-radius: 6px; display: inline-block;">Fully Paid (AED ${effectivePaid})</span>`;
-        statusBadgeHtml = `<span class="badge badge-active">Active</span>`;
-      } else if (effectivePaid > 0) {
-        balanceHtml = `<span style="color: #d97706; font-weight: 700;">Paid: AED ${effectivePaid}<br><b style="color: #ef4444;">Bal: AED ${remainingBalance}</b></span>`;
-        statusBadgeHtml = `<span class="badge" style="background: #fef3c7; color: #d97706; font-weight: 700; padding: 6px 10px; border-radius: 6px;">Partial</span>`;
-      } else {
-        balanceHtml = `<span style="color: #ef4444; font-weight: 700;">Unpaid (Bal: AED 250)</span>`;
-        statusBadgeHtml = `<span class="badge" style="background: #fee2e2; color: #ef4444; font-weight: 700; padding: 6px 10px; border-radius: 6px;">Inactive</span>`;
-      }
-
-      // ================= SMART WHATSAPP REMINDER BUTTON =================
-      let waButtonHtml = '';
-      if (daysLeft <= 3) {
-        const passName = p.name || 'Passenger';
-        let waText = '';
-
-        if (daysLeft < 0) {
-          waText = `Hi ${passName}! Paalala lang po mula sa Carlift OS: Ang iyong 25-day carlift subscription ay Expired / Overdue na. Paki-settle na po ang AED 250 para ma-renew ang iyong seat reservation. Salamat!`;
-        } else if (daysLeft === 0) {
-          waText = `Hi ${passName}! Paalala lang po mula sa Carlift OS: Due date mo na ngayong araw para sa carlift subscription (AED 250). Paki-settle po sa Owner para tuloy-tuloy ang biyahe. Thank you!`;
-        } else {
-          waText = `Hi ${passName}! Paalala lang po mula sa Carlift OS: Ang iyong 25-day carlift subscription ay mag-eexpire sa loob ng ${daysLeft} araw. Rate: AED 250. Paki-settle na lang po sa Owner. Salamat!`;
-        }
-
-        const encodedMsg = encodeURIComponent(waText);
-        waButtonHtml = `
-          <div style="margin-top: 6px;">
-            <a href="https://wa.me/${cleanPhone}?text=${encodedMsg}" target="_blank" class="btn-action-update" style="background: #25d366; color: #ffffff; padding: 3px 8px; font-size: 11px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; font-weight: 700; box-shadow: 0 2px 6px rgba(37,211,102,0.3);">
-              <i class="fa-brands fa-whatsapp"></i> Send WA
-            </a>
-          </div>
-        `;
-      }
-
-      const row = `
-        <tr>
-          <td><span class="id-chip">${p.id}</span></td>
-          <td style="font-weight: 800; color: #0f172a;">${p.name || 'N/A'}</td>
-          <td>
-            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" style="cursor:pointer;" />
-          </td>
-          <td>
-            <a href="https://wa.me/${cleanPhone}" target="_blank" class="whatsapp-link">
-              <i class="fa-brands fa-whatsapp"></i> ${p.whatsapp || p.mobile || 'N/A'}
-            </a>
-          </td>
-          <td><b>${p.pickup || 'N/A'}</b> → <b>${p.dropoff || 'N/A'}</b></td>
-          <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${scheduleText || 'N/A'}</span></td>
-          <td style="text-align: center; font-size: 13px; color: #475569; font-weight: 600;">
-            <div>${timeText || 'N/A'}</div>
-            <div style="margin-top: 4px;">
-              <button class="btn-action-update" onclick="openUpdateWorkingTimeModal('${p.id}', '${p.name || ''}', '${p.time || ''}')" style="padding: 2px 8px; font-size: 11px;">
-                <i class="fa-solid fa-pen"></i> Edit Shift
-              </button>
-            </div>
-          </td>
-          <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${joinedDateFormatted}</span></td>
-          <td style="text-align: center; font-size: 12px;">
-            ${balanceHtml}
-            <div style="margin-top: 4px;">
-              <button class="btn-action-update" onclick="openUpdatePaymentDateModal('${p.id}', '${p.name || ''}')" style="padding: 2px 8px; font-size: 11px;">
-                <i class="fa-solid fa-pen"></i> Add Pay
-              </button>
-            </div>
-          </td>
-          <td style="text-align: center;">
-            <span class="badge ${countdownClass}" style="padding: 6px 10px; border-radius: 6px; display: inline-block; font-weight: 700;">
-              <i class="fa-solid fa-clock"></i> ${countdownText}
-            </span>
-            ${waButtonHtml}
-          </td>
-          <td style="text-align: center;">
-            ${statusBadgeHtml}
-          </td>
-          <td style="text-align: center;">
-            <button class="btn-action-delete" onclick="openDeleteModal('${p.id}', '${p.name || ''}', 'passenger')">
-              <i class="fa-solid fa-trash"></i> Delete
-            </button>
-          </td>
-        </tr>
-      `;
-      masterBody.innerHTML += row;
-    });
-  }
-
-  const infoElem = document.getElementById('passengersPageInfo');
-  const prevBtn = document.getElementById('btnPrevPassengers');
-  const nextBtn = document.getElementById('btnNextPassengers');
-
-  if (infoElem) infoElem.innerText = `Showing page ${currentPassengerPage} of ${totalPages} (${totalItems} passengers)`;
-  if (prevBtn) prevBtn.disabled = (currentPassengerPage === 1);
-  if (nextBtn) nextBtn.disabled = (currentPassengerPage === totalPages || totalPages === 0);
-}
-
-function changePendingPage(direction) {
-  currentPendingPage += direction;
-  const pendingList = globalPassengerData.filter(p => p.status === 'Pending Payment');
-  renderPendingTable(pendingList);
-}
-
-/* ================= DATE FORMATTERS ================= */
-function formatDateOnly(dateString) {
-  if (!dateString) return 'N/A';
-  if (typeof dateString === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
-    return dateString;
-  }
-
-  let dateObj = new Date(dateString);
-  if (isNaN(dateObj.getTime())) {
-    dateObj = new Date(dateString.replace(' ', 'T'));
-  }
-  if (isNaN(dateObj.getTime())) return dateString;
-
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const year = dateObj.getFullYear();
-
-  return `${day}-${month}-${year}`;
-}
-
-function formatMonthOnly(dateString) {
-  if (!dateString) return 'N/A';
-  let dateObj = new Date(dateString);
-  if (isNaN(dateObj.getTime())) {
-    dateObj = new Date(dateString.replace(' ', 'T'));
-  }
-  if (isNaN(dateObj.getTime())) return dateString;
-
-  return dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-}
-
-/* ================= PAYMENTS TABLE (PINAKA LATEST SA UNA) ================= */
-function filterPayments() {
-  currentPaymentPage = 1;
-  renderPaymentsTable(globalPaymentData);
-}
-
-function changePaymentsPage(direction) {
-  currentPaymentPage += direction;
-  renderPaymentsTable(globalPaymentData);
-}
-
-function renderPaymentsTable(data) {
-  const searchElem = document.getElementById('paymentSearch');
-  const searchQuery = searchElem ? searchElem.value.toLowerCase() : '';
-  
-  let displayData = [...data];
-
-  // Sorting: Pinaka-latest na payment date at receipt no ang nauuna sa itaas
-  displayData.sort((a, b) => {
-    const dateA = new Date(a.payment_date || 0);
-    const dateB = new Date(b.payment_date || 0);
-    if (dateB - dateA !== 0) return dateB - dateA;
-    return (b.receipt_no || '').localeCompare(a.receipt_no || '');
-  });
-
-  if (searchQuery) {
-    displayData = displayData.filter(pay => 
-      (pay.receipt_no && pay.receipt_no.toLowerCase().includes(searchQuery)) ||
-      (pay.passenger_name && pay.passenger_name.toLowerCase().includes(searchQuery)) ||
-      (pay.passenger_id && pay.passenger_id.toLowerCase().includes(searchQuery)) ||
-      (pay.billing_month && pay.billing_month.toLowerCase().includes(searchQuery))
-    );
-  }
-
-  const totalItems = displayData.length;
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
-
-  if (currentPaymentPage < 1) currentPaymentPage = 1;
-  if (currentPaymentPage > totalPages) currentPaymentPage = totalPages;
-
-  const startIndex = (currentPaymentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedData = displayData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  const payBody = document.getElementById('paymentsTableBody');
-  if (!payBody) return;
-
-  payBody.innerHTML = '';
-
-  if (paginatedData.length === 0) {
-    payBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 30px; color:#94a3b8; font-weight:700;">No payment records found.</td></tr>';
-  } else {
-    paginatedData.forEach(pay => {
-      const matchedPassenger = globalPassengerData.find(p => p.id === pay.passenger_id);
-      const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10'>No Photo</text></svg>";
-      const photoSrc = (matchedPassenger && matchedPassenger.photo) ? matchedPassenger.photo : defaultAvatar;
-      const passName = pay.passenger_name || (matchedPassenger ? matchedPassenger.name : 'N/A');
-
-      const formattedDate = pay.payment_date ? formatDateOnly(pay.payment_date) : 'N/A';
-      const billMonth = pay.billing_month ? formatMonthOnly(pay.billing_month) : 'N/A';
-
-      const row = `
-        <tr>
-          <td><span class="id-chip">${pay.receipt_no}</span></td>
-          <td><b>${pay.passenger_id}</b></td>
-          <td><b>${passName}</b></td>
-          <td>
-            <img src="${photoSrc}" class="avatar-img" alt="Photo" onclick="openImageModal('${photoSrc}', '${passName}')" title="Click to view full photo" style="cursor:pointer;" />
-          </td>
-          <td><span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700;">${billMonth}</span></td>
-          <td style="font-weight: 800; color: #10b981;">AED ${pay.amount}</td>
-          <td>${pay.collector || 'Owner'}</td>
-          <td><span style="font-size: 13px; color: #475569; font-weight: 600;">${formattedDate}</span></td>
-        </tr>
-      `;
-      payBody.innerHTML += row;
-    });
-  }
-
-  const infoElem = document.getElementById('paymentsPageInfo');
-  const prevBtn = document.getElementById('btnPrevPayments');
-  const nextBtn = document.getElementById('btnNextPayments');
-
-  if (infoElem) infoElem.innerText = `Showing page ${currentPaymentPage} of ${totalPages} (${totalItems} logs)`;
-  if (prevBtn) prevBtn.disabled = (currentPaymentPage === 1);
-  if (nextBtn) nextBtn.disabled = (currentPaymentPage === totalPages || totalPages === 0);
-}
-
-/* ================= REPORTS & CSV EXPORT ================= */
-async function loadReportsData() {
-  try {
-    const res = await fetch(`${API_BASE_URL}/reports/summary`, {
-      headers: getAuthHeaders()
-    });
-    const data = await res.json();
-    if (data && data.success) {
-      reportSummaryData = data;
-      globalRouteData = data.routeRevenue || [];
-      renderRouteReports(globalRouteData);
-    }
-  } catch (err) {
-    console.error("Error loading reports:", err);
-  }
-}
-
-function changeReportsPage(direction) {
-  currentReportPage += direction;
-  renderRouteReports(globalRouteData);
-}
-
-function renderRouteReports(routeData) {
-  const totalItems = routeData.length;
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
-
-  if (currentReportPage < 1) currentReportPage = 1;
-  if (currentReportPage > totalPages) currentReportPage = totalPages;
-
-  const startIndex = (currentReportPage - 1) * ITEMS_PER_PAGE;
-  const paginatedData = routeData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  const tbody = document.getElementById('routeReportTableBody');
-  if (!tbody) return;
-
-  tbody.innerHTML = '';
-
-  if (paginatedData.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 20px;">No active route statistics found.</td></tr>';
-  } else {
-    paginatedData.forEach(r => {
-      const revenueNum = Number(r.total_revenue) || 0;
-      const row = `
-        <tr>
-          <td><b>${r.route}</b></td>
-          <td><span class="id-chip">${r.passenger_count} Active</span></td>
-          <td>AED 250 / mo</td>
-          <td style="font-weight: 800; color: #10b981;">AED ${revenueNum.toLocaleString()}</td>
-        </tr>
-      `;
-      tbody.innerHTML += row;
-    });
-  }
-}
-
-function downloadCSVReport(type) {
-  let csvContent = "data:text/csv;charset=utf-8,";
-
-  if (type === 'passengers') {
-    const headers = ["Passenger ID", "Name", "WhatsApp / Phone", "Pickup Route", "Dropoff Route", "Schedule", "Working Time", "Join Date", "Total Paid (AED)", "Remaining Balance (AED)", "Status"];
-    csvContent += headers.join(",") + "\n";
-
-    const activePassengers = globalPassengerData.filter(p => p.status === 'Active' || p.status !== 'Pending Payment');
-
-    if (activePassengers.length === 0) {
-      showToastNotification("No passenger data available to export.");
-      return;
-    }
-
-    activePassengers.forEach(p => {
-      const totalPaid = Number(p.total_paid) || 0;
-      const balance = Math.max(0, 250 - totalPaid);
-      const cleanName = `"${(p.name || '').replace(/"/g, '""')}"`;
-      const cleanPhone = `"${p.whatsapp || p.mobile || ''}"`;
-      const cleanPickup = `"${(p.pickup || '').replace(/"/g, '""')}"`;
-      const cleanDropoff = `"${(p.dropoff || '').replace(/"/g, '""')}"`;
-      const cleanSchedule = `"${(p.schedule || '').replace(/"/g, '""')}"`;
-      const cleanTime = `"${(p.time || '').replace(/"/g, '""')}"`;
-      const joinDate = formatDateOnly(p.join_date || p.created_at);
-
-      let statusText = "Inactive";
-      if (totalPaid >= 250) statusText = "Active (Fully Paid)";
-      else if (totalPaid > 0) statusText = "Partial Payment";
-
-      const row = [p.id, cleanName, cleanPhone, cleanPickup, cleanDropoff, cleanSchedule, cleanTime, joinDate, totalPaid, balance, statusText];
-      csvContent += row.join(",") + "\n";
-    });
-
-  } else if (type === 'payments') {
-    const headers = ["Receipt No", "Passenger ID", "Passenger Name", "Bill Month", "Amount Paid (AED)", "Collector", "Payment Date"];
-    csvContent += headers.join(",") + "\n";
-
-    if (globalPaymentData.length === 0) {
-      showToastNotification("No payment data available to export.");
-      return;
-    }
-
-    globalPaymentData.forEach(pay => {
-      const matchedPassenger = globalPassengerData.find(p => p.id === pay.passenger_id);
-      const passName = `"${(pay.passenger_name || (matchedPassenger ? matchedPassenger.name : 'N/A')).replace(/"/g, '""')}"`;
-      const billMonth = pay.billing_month ? formatMonthOnly(pay.billing_month) : 'N/A';
-      const formattedDate = pay.payment_date ? formatDateOnly(pay.payment_date) : 'N/A';
-
-      const row = [pay.receipt_no, pay.passenger_id, passName, `"${billMonth}"`, pay.amount, `"${pay.collector || 'Owner'}"`, formattedDate];
-      csvContent += row.join(",") + "\n";
-    });
-  }
-
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  const fileName = type === 'passengers' ? `Carlift_Passengers_Manifest_${new Date().toISOString().slice(0, 10)}.csv` : `Carlift_Payments_Report_${new Date().toISOString().slice(0, 10)}.csv`;
-  link.setAttribute("download", fileName);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  showToastNotification(`${type === 'passengers' ? 'Passenger Manifest' : 'Payments Report'} downloaded successfully!`);
-}
-
-/* ================= WORKING TIME MODAL ================= */
-function openUpdateWorkingTimeModal(passengerId, passengerName) {
-  pendingActionPassengerId = passengerId;
-  const nameElem = document.getElementById('workingTimePassengerName');
-  if (nameElem) nameElem.innerText = passengerName || passengerId;
-
-  const modal = document.getElementById('updateWorkingTimeModal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeUpdateWorkingTimeModal() {
-  pendingActionPassengerId = null;
-  const modal = document.getElementById('updateWorkingTimeModal');
-  if (modal) modal.classList.remove('active');
-}
-
-async function confirmUpdateWorkingTime() {
-  const passengerId = pendingActionPassengerId;
-  const pTimeInput = document.getElementById('modalPickupTime');
-  const rTimeInput = document.getElementById('modalReturnTime');
-  
-  const pTimeVal = pTimeInput ? pTimeInput.value : '08:00';
-  const rTimeVal = rTimeInput ? rTimeInput.value : '17:00';
-
-  if (!passengerId || !pTimeVal || !rTimeVal) {
-    showToastNotification("Please select both morning and afternoon times.");
-    return;
-  }
-
-  const formatTime = (timeStr) => {
-    if (!timeStr) return '9:30 AM';
-    const [h, m] = timeStr.split(':');
-    const hour = parseInt(h, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const formattedHour = hour % 12 || 12;
-    return `${formattedHour}:${m} ${ampm}`;
-  };
-
-  const newWorkingTime = `${formatTime(pTimeVal)} / ${formatTime(rTimeVal)}`;
-  closeUpdateWorkingTimeModal();
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/passengers/${passengerId}/time`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ time: newWorkingTime })
-    });
-
-    const data = await res.json();
-    if (data && data.success) {
-      showToastNotification(`Working time updated successfully!`);
-      loadDashboard();
-    } else {
-      const targetPassenger = globalPassengerData.find(p => p.id === passengerId);
-      if (targetPassenger) targetPassenger.time = newWorkingTime;
-      renderMasterlistTable(globalPassengerData);
-      showToastNotification(`Working time updated locally!`);
-    }
-  } catch (err) {
-    const targetPassenger = globalPassengerData.find(p => p.id === passengerId);
-    if (targetPassenger) targetPassenger.time = newWorkingTime;
-    renderMasterlistTable(globalPassengerData);
-    showToastNotification(`Working time updated successfully!`);
-  }
-}
-
-/* ================= CHART.JS ANALYTICS ================= */
-function initChart(passengersData, paymentsData) {
-  const canvasElem = document.getElementById('revenueChart');
-  if (!canvasElem) return;
-
-  const ctx = canvasElem.getContext('2d');
-  const totalCollected = paymentsData.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-  const activePassengers = passengersData.filter(p => p.status === 'Active');
-  const totalExpectedRevenue = activePassengers.length * 250;
-  const totalPending = Math.max(0, totalExpectedRevenue - totalCollected);
-
-  const collectedTextElem = document.getElementById('donutCollectedText');
-  const pendingTextElem = document.getElementById('donutPendingText');
-  if (collectedTextElem) collectedTextElem.innerText = `AED ${totalCollected.toLocaleString()}`;
-  if (pendingTextElem) pendingTextElem.innerText = `AED ${totalPending.toLocaleString()}`;
-
-  const chartData = [totalCollected, totalPending];
-  if (totalCollected === 0 && totalPending === 0) {
-    chartData[0] = 1;
-  }
-
-  if (revenueChartInstance) {
-    revenueChartInstance.destroy();
-  }
-
-  revenueChartInstance = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Collected Revenue', 'Pending Payments'],
-      datasets: [{
-        data: chartData,
-        backgroundColor: ['#10b981', '#f59e0b'],
-        borderWidth: 0,
-        hoverOffset: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            boxWidth: 12,
-            font: { family: 'Inter, sans-serif', size: 12, weight: '600' },
-            color: '#334155'
-          }
-        },
-        tooltip: {
-          backgroundColor: '#0f172a',
-          titleFont: { size: 14, weight: 'bold' },
-          bodyFont: { size: 13 },
-          padding: 12,
-          callbacks: {
-            label: function(context) {
-              const labelName = context.label || '';
-              const val = context.raw;
-              if (totalCollected === 0 && totalPending === 0) {
-                return ` No active data recorded yet`;
-              }
-              return ` ${labelName}: AED ${val.toLocaleString()}`;
-            }
-          }
-        }
-      },
-      cutout: '70%'
-    }
-  });
-}
-
-/* ================= QR CODE SCANNER ================= */
-function openQRScannerModal() {
-  const modal = document.getElementById('qrScannerModal');
-  if (modal) {
-    modal.classList.add('active');
-    modal.style.display = 'flex';
-  }
-
-  if (typeof Html5Qrcode !== 'undefined') {
-    if (!html5QrCodeScanner) {
-      html5QrCodeScanner = new Html5Qrcode("qrReader");
-    }
+      <ul class="nav-menu">
+        <li class="nav-item active" onclick="switchTab('dashboard', event)">
+          <span><i class="fa-solid fa-gauge-high"></i> Dashboard</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('passengers', event)">
+          <span><i class="fa-solid fa-users"></i> Passengers List</span>
+        </li>
+
+        <!-- TATLONG TABS SA BABA NG PASSENGER LIST -->
+        <li class="nav-item nav-sub-item" onclick="switchTab('fullpaid', event)" style="padding-left: 28px; font-size: 13px;">
+          <span><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Full Paid</span>
+          <span id="fbFullPaidBadge" class="fb-badge" style="background: #10b981; color: #fff; display: none;">0</span>
+        </li>
+        <li class="nav-item nav-sub-item" onclick="switchTab('partial', event)" style="padding-left: 28px; font-size: 13px;">
+          <span><i class="fa-solid fa-hourglass-half" style="color: #f59e0b;"></i> Partial</span>
+          <span id="fbPartialBadge" class="fb-badge" style="background: #f59e0b; color: #fff; display: none;">0</span>
+        </li>
+        <li class="nav-item nav-sub-item" onclick="switchTab('unpaid', event)" style="padding-left: 28px; font-size: 13px;">
+          <span><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Unpaid</span>
+          <span id="fbUnpaidBadge" class="fb-badge" style="background: #ef4444; color: #fff; display: none;">0</span>
+        </li>
+
+        <li class="nav-item" onclick="switchTab('payments', event)">
+          <span><i class="fa-solid fa-receipt"></i> Payment History</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('reports', event)">
+          <span><i class="fa-solid fa-chart-line"></i> Revenue Reports</span>
+        </li>
+
+        <!-- AWAITING APPROVAL SIDEBAR ITEM -->
+        <li class="nav-item" onclick="switchTab('awaiting', event)">
+          <span><i class="fa-solid fa-clock"></i> Awaiting Approval</span>
+          <span id="fbAwaitingBadge" class="fb-badge" style="display: none;">0</span>
+        </li>
+
+        <!-- QR CODE SCANNER SIDEBAR ITEM -->
+        <li class="nav-item" onclick="switchTab('qrscanner', event)">
+          <span><i class="fa-solid fa-qrcode"></i> QR Code Scanner</span>
+        </li>
+
+        <li class="nav-item" onclick="switchTab('settings', event)">
+          <span><i class="fa-solid fa-sliders"></i> Settings</span>
+        </li>
+      </ul>
+    </div>
     
-    html5QrCodeScanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        handleScannedQRCode(decodedText);
-      },
-      () => {}
-    ).catch(() => {
-      showToastNotification("Unable to access camera for scanning.");
-    });
-  } else {
-    showToastNotification("QR Scanner library not loaded.");
-  }
-}
+    <!-- OWNER PROFILE & LOGOUT -->
+    <div class="owner-profile">
+      <div class="owner-info">
+        <div class="avatar">O</div>
+        <div>
+          <div style="font-weight: 800; font-size: 14px;">Carlift Owner</div>
+          <div style="font-size: 11px; color: #94a3b8;">Operator Panel</div>
+        </div>
+      </div>
+      <button class="btn-single-logout" onclick="openLogoutModal()" title="Logout of System">
+        <i class="fa-solid fa-power-off"></i>
+      </button>
+    </div>
+  </aside>
 
-function stopQRScanner() {
-  if (html5QrCodeScanner) {
-    html5QrCodeScanner.stop().then(() => {
-      html5QrCodeScanner.clear();
-      html5QrCodeScanner = null;
-    }).catch(err => {
-      console.warn("Error stopping QR Scanner:", err);
-    });
-  }
-}
+  <!-- Main Content Wrapper -->
+  <main class="main-wrapper">
+    <!-- Top Bar Header -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button class="mobile-toggle-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="top-bar-title-chip">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Owner Control Panel</span>
+        </div>
+      </div>
+      <div class="top-bar-status">
+        <div class="pulse-dot"></div>
+        <span class="status-text-full">Live Database Sync</span>
+        <span class="status-text-short">Live Sync</span>
+      </div>
+    </header>
 
-function closeQRScannerModal() {
-  stopQRScanner();
-  const modal = document.getElementById('qrScannerModal');
-  if (modal) {
-    modal.classList.remove('active');
-    modal.style.display = 'none';
-  }
-}
+    <!-- Main Content Container -->
+    <div class="content-container">
 
-function closeQRResultModal() {
-  const modal = document.getElementById('qrResultModal');
-  if (modal) {
-    modal.classList.remove('active');
-    modal.style.display = 'none';
-  }
-}
+      <!-- ================= SECTION 1: DASHBOARD ================= -->
+      <section id="view-dashboard" class="view-section active">
 
-function handleScannedQRCode(scannedCode) {
-  stopQRScanner();
-  if (!scannedCode) return;
+        <!-- HERO SAAS BANNER -->
+        <div class="hero-action-card">
+          <div class="hero-left-info">
+            <div class="hero-tag-pills">
+              <span class="hero-pill-green"><i class="fa-solid fa-circle-check"></i> System Active</span>
+              <span class="hero-pill-glass"><i class="fa-solid fa-van-shuttle"></i> Sharjah ⇆ Dubai Routes</span>
+            </div>
+            <div class="hero-subtitle-text">
+              <span><i class="fa-solid fa-wallet"></i> Monthly Rate: <b>AED 250 / pax</b></span>
+              <span>•</span>
+              <span><i class="fa-solid fa-clock"></i> Auto-Receipts & WA Reminders Enabled</span>
+            </div>
+          </div>
+          <div class="quick-btn-group">
+            <button class="btn-owner-primary" onclick="openPaymentModal()">
+              <i class="fa-solid fa-hand-holding-dollar"></i> Record Cash Payment
+            </button>
+            <button class="btn-owner-secondary" onclick="downloadCSVReport('passengers')">
+              <i class="fa-solid fa-file-excel"></i> Export Manifest
+            </button>
+          </div>
+        </div>
 
-  let cleanCode = scannedCode.trim();
-  try {
-    if (cleanCode.startsWith('{')) {
-      const parsed = JSON.parse(cleanCode);
-      cleanCode = parsed.id || parsed.passengerId || parsed.passId || cleanCode;
-    } else if (cleanCode.includes('/')) {
-      const parts = cleanCode.split('/');
-      cleanCode = parts[parts.length - 1] || cleanCode;
-    }
-  } catch (e) {
-    console.warn("QR parsing fallback applied:", e);
-  }
+        <!-- 4 KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div>
+              <div class="kpi-title">Total Cash Collected</div>
+              <div class="kpi-value" id="kpiRevenue" style="color: #10b981;">AED 0</div>
+              <div class="kpi-sub">Total revenue recorded</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-green"><i class="fa-solid fa-vault"></i></div>
+          </div>
 
-  const matchedPassenger = globalPassengerData.find(p => 
-    (p.id && p.id.toLowerCase() === cleanCode.toLowerCase()) ||
-    (p.name && p.name.toLowerCase() === cleanCode.toLowerCase()) ||
-    (p.whatsapp && String(p.whatsapp).includes(cleanCode)) ||
-    (p.mobile && String(p.mobile).includes(cleanCode))
-  );
+          <div class="kpi-card">
+            <div>
+              <div class="kpi-title">Pending Payment</div>
+              <div class="kpi-value" id="kpiPendingCount" style="color: #d97706;">0</div>
+              <div class="kpi-sub" style="color: #d97706;">Awaiting cash approval</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-amber"><i class="fa-solid fa-clock"></i></div>
+          </div>
 
-  if (matchedPassenger) {
-    const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90' fill='%2394a3b8'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='11'>No Photo</text></svg>";
+          <div class="kpi-card">
+            <div>
+              <div class="kpi-title">Active Passengers</div>
+              <div class="kpi-value" id="kpiActiveCount">0</div>
+              <div class="kpi-sub" id="kpiSeatsAvailableText">14 Seats Available</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-blue"><i class="fa-solid fa-user-check"></i></div>
+          </div>
 
-    const photoElem = document.getElementById('qrScanPhoto');
-    const nameElem = document.getElementById('qrScanName');
-    const phoneElem = document.getElementById('qrScanPhone');
-    const statusBadgeElem = document.getElementById('qrScanStatusBadge');
-    const latestPaymentElem = document.getElementById('qrScanLatestPayment');
-    const balanceElem = document.getElementById('qrScanBalance');
-    const countdownElem = document.getElementById('qrScanCountdown');
-    const updatePayBtn = document.getElementById('qrScanUpdatePayBtn');
+          <div class="kpi-card">
+            <div>
+              <div class="kpi-title">Occupancy Rate</div>
+              <div class="kpi-value" id="kpiOccupancyRate">0%</div>
+              <div class="kpi-sub">Based on van capacity</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-purple"><i class="fa-solid fa-bus"></i></div>
+          </div>
+        </div>
 
-    if (photoElem) photoElem.src = matchedPassenger.photo || defaultAvatar;
-    if (nameElem) nameElem.innerText = `${matchedPassenger.name || 'N/A'} (${matchedPassenger.id || 'N/A'})`;
-    if (phoneElem) phoneElem.innerText = matchedPassenger.whatsapp || matchedPassenger.mobile || 'No Phone';
+        <!-- MODERN DOUGHNUT COLLECTION ANALYTICS -->
+        <div class="chart-container-box" style="background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid var(--border-color, #e2e8f0); box-shadow: 0 4px 16px rgba(0,0,0,0.04); margin-top: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <div style="font-size: 16px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Collection & Revenue Distribution
+              </div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Real-time breakdown of collected vs. pending monthly rates (AED 250)</div>
+            </div>
+            <div style="background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; color: #334155;">
+              <i class="fa-solid fa-calendar-days" style="color: #2563eb; margin-right: 4px;"></i> Current Quarter
+            </div>
+          </div>
 
-    // Ikabit ang Update Pay button action para direkta sa modal
-    if (updatePayBtn) {
-      updatePayBtn.onclick = () => {
-        closeQRResultModal();
-        openUpdatePaymentDateModal(matchedPassenger.id, matchedPassenger.name);
-      };
-    }
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; align-items: center;">
+            <div style="position: relative; width: 100%; height: 240px; display: flex; justify-content: center; align-items: center;">
+              <canvas id="revenueChart"></canvas>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-size: 11px; color: #64748b; font-weight: 600;">COLLECTED SHARE</div>
+                  <div style="font-size: 15px; font-weight: 800; color: #10b981;" id="donutCollectedText">AED 0</div>
+                </div>
+                <div style="width: 36px; height: 36px; background: #ecfdf5; color: #10b981; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                  <i class="fa-solid fa-arrow-trend-up"></i>
+                </div>
+              </div>
 
-    const passengerPayments = globalPaymentData.filter(pay => pay.passenger_id === matchedPassenger.id);
-    let lastPayDateStr = null;
-    let latestPaymentText = "No payment record";
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-size: 11px; color: #64748b; font-weight: 600;">PENDING SHARE</div>
+                  <div style="font-size: 15px; font-weight: 800; color: #d97706;" id="donutPendingText">AED 0</div>
+                </div>
+                <div style="width: 36px; height: 36px; background: #fffbeb; color: #d97706; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                  <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    if (passengerPayments.length > 0) {
-      passengerPayments.sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
-      const latestPay = passengerPayments[0];
-      lastPayDateStr = latestPay.payment_date;
-      latestPaymentText = `AED ${latestPay.amount} (${formatDateOnly(lastPayDateStr)})`;
-    }
+      </section>
 
-    if (!lastPayDateStr) {
-      lastPayDateStr = matchedPassenger.last_payment_date || matchedPassenger.join_date || matchedPassenger.created_at;
-    }
+      <!-- ================= SECTION 2: PASSENGERS ================= -->
+      <section id="view-passengers" class="view-section">
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title"><i class="fa-solid fa-users"></i> Passenger Directory</div>
+            <div class="search-box">
+              <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input type="text" id="passengerSearch" placeholder="Filter by name, route, or phone..." onkeyup="filterPassengers()">
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Passenger Name</th>
+                  <th>Photo</th>
+                  <th>WhatsApp Number</th>
+                  <th>Route</th>
+                  <th>Schedule</th>
+                  <th>Working Time</th>
+                  <th>Join Date</th>
+                  <th style="text-align: center;">Total Paid / Balance</th>
+                  <th style="text-align: center;">Validity / Countdown</th>
+                  <th>Status</th>
+                  <th style="text-align: center;">Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="allPassengersTableBody">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
+          <!-- PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="passengersPageInfo">Showing 0 of 0 passengers</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevPassengers" onclick="changePassengersPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextPassengers" onclick="changePassengersPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    let daysLeft = 0;
-    let isExpired = false;
-    let countdownText = 'Expired / Overdue';
+      <!-- ================= SECTION 2A: FULL PAID PASSENGERS ================= -->
+      <section id="view-fullpaid" class="view-section">
+        <div class="table-card">
+          <div class="table-header" style="background: #ecfdf5;">
+            <div class="table-title" style="color: #065f46;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Full Paid Passengers (AED 250)</div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Total Paid</th><th>Countdown</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="fullPaidTableBody"></tbody>
+            </table>
+          </div>
+          <!-- FULL PAID PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="fullPaidPageInfo">Showing 0 of 0 passengers</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevFullPaid" onclick="changeFullPaidPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextFullPaid" onclick="changeFullPaidPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    if (lastPayDateStr) {
-      const payDate = new Date(lastPayDateStr);
-      const today = new Date();
-      const diffTime = today - payDate;
-      const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      daysLeft = 25 - daysPassed;
+      <!-- ================= SECTION 2B: PARTIAL PASSENGERS ================= -->
+      <section id="view-partial" class="view-section">
+        <div class="table-card">
+          <div class="table-header" style="background: #fffbeb;">
+            <div class="table-title" style="color: #92400e;"><i class="fa-solid fa-hourglass-half" style="color: #f59e0b;"></i> Partial Payment Passengers</div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Paid / Balance</th><th>Countdown</th><th>Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="partialTableBody"></tbody>
+            </table>
+          </div>
+          <!-- PARTIAL PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="partialPageInfo">Showing 0 of 0 passengers</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevPartial" onclick="changePartialPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextPartial" onclick="changePartialPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      if (daysLeft >= 0) {
-        countdownText = `${daysLeft} Days Left`;
-      } else {
-        isExpired = true;
-        countdownText = 'Expired / Overdue';
-      }
-    } else {
-      isExpired = true;
-    }
+      <!-- ================= SECTION 2C: UNPAID PASSENGERS ================= -->
+      <section id="view-unpaid" class="view-section">
+        <div class="table-card">
+          <div class="table-header" style="background: #fef2f2;">
+            <div class="table-title" style="color: #991b1b;"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Unpaid / Expired Passengers</div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Passenger Name</th><th>Photo</th><th>WhatsApp Number</th><th>Balance Due</th><th>Countdown</th><th>Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="unpaidTableBody"></tbody>
+            </table>
+          </div>
+          <!-- UNPAID PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="unpaidPageInfo">Showing 0 of 0 passengers</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevUnpaid" onclick="changeUnpaidPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextUnpaid" onclick="changeUnpaidPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    const totalPaid = Number(matchedPassenger.total_paid) || 0;
-    const effectivePaid = isExpired ? 0 : totalPaid;
-    const remainingBalance = Math.max(0, 250 - effectivePaid);
+      <!-- ================= SECTION 3: PAYMENTS ================= -->
+      <section id="view-payments" class="view-section">
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title"><i class="fa-solid fa-receipt"></i> Payment Logs & Receipts</div>
+            <div class="search-box">
+              <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input type="text" id="paymentSearch" placeholder="Filter receipt or ID..." onkeyup="filterPayments()">
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Receipt No</th>
+                  <th>Passenger ID</th>
+                  <th>Passenger Name</th>
+                  <th>Photo</th>
+                  <th>Bill Month</th>
+                  <th>Amount Paid</th>
+                  <th>Collector</th>
+                  <th>Payment Date</th>
+                </tr>
+              </thead>
+              <tbody id="paymentsTableBody">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
+          <!-- PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="paymentsPageInfo">Showing 0 of 0 payment logs</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevPayments" onclick="changePaymentsPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextPayments" onclick="changePaymentsPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    if (statusBadgeElem) {
-      if (totalPaid >= 250 && !isExpired) {
-        statusBadgeElem.className = 'badge badge-active';
-        statusBadgeElem.innerText = 'Active (Fully Paid)';
-        statusBadgeElem.style.background = '#10b981';
-        statusBadgeElem.style.color = '#ffffff';
-      } else if (totalPaid > 0 && !isExpired) {
-        statusBadgeElem.className = 'badge';
-        statusBadgeElem.style.background = '#fef3c7';
-        statusBadgeElem.style.color = '#d97706';
-        statusBadgeElem.innerText = 'Partial Payment';
-      } else {
-        statusBadgeElem.className = 'badge';
-        statusBadgeElem.style.background = '#fee2e2';
-        statusBadgeElem.style.color = '#ef4444';
-        statusBadgeElem.innerText = 'Inactive / Expired';
-      }
-    }
+      <!-- ================= SECTION 4: REPORTS ================= -->
+      <section id="view-reports" class="view-section">
+        <div style="display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+          <button class="btn-owner-primary" onclick="downloadCSVReport('passengers')">
+            <i class="fa-solid fa-file-csv"></i> Export Passengers CSV
+          </button>
+          <button class="btn-owner-secondary" style="background:#0f172a; color:#fff;" onclick="downloadCSVReport('payments')">
+            <i class="fa-solid fa-file-csv"></i> Export Payments CSV
+          </button>
+        </div>
 
-    if (latestPaymentElem) latestPaymentElem.innerText = latestPaymentText;
-    if (balanceElem) balanceElem.innerText = `AED ${remainingBalance}`;
-    if (countdownElem) countdownElem.innerText = countdownText;
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title"><i class="fa-solid fa-route"></i> Route Revenue Breakdown</div>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Route Name</th>
+                  <th>Active Passengers</th>
+                  <th>Monthly Rate</th>
+                  <th>Total Route Revenue</th>
+                </tr>
+              </thead>
+              <tbody id="routeReportTableBody">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
+          <!-- PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="reportsPageInfo">Showing 0 of 0 routes</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevReports" onclick="changeReportsPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextReports" onclick="changeReportsPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    const resultModal = document.getElementById('qrResultModal');
-    if (resultModal) {
-      resultModal.classList.add('active');
-      resultModal.style.display = 'flex';
-    }
-  } else {
-    showToastNotification(`Scanned Code: "${cleanCode}" - No matching passenger found in Passenger List.`);
-  }
-}
+      <!-- ================= SECTION 5: AWAITING APPROVAL ================= -->
+      <section id="view-awaiting" class="view-section">
+        <div class="table-card">
+          <div class="table-header" style="background: #fffbeb;">
+            <div class="table-title" style="color: #b45309;"><i class="fa-solid fa-clock"></i> Cash Payments Awaiting Approval</div>
+            <span class="badge badge-pending" id="pendingBadgeCount">0 Pending</span>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Passenger Name</th>
+                  <th>Photo</th>
+                  <th>WhatsApp Number</th>
+                  <th>Route</th>
+                  <th>Schedule</th>
+                  <th>Working Time</th>
+                  <th>Join Date</th>
+                  <th>Status</th>
+                  <th>Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="pendingTableBody">
+                <!-- Injected by JS -->
+              </tbody>
+            </table>
+          </div>
 
-/* ================= OWNER LOGOUT SYSTEM ================= */
-function openLogoutModal() {
-  const modal = document.getElementById('logoutModal');
-  if (modal) modal.style.display = 'flex';
-}
+          <!-- PAGINATION CONTROLS -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="pendingPageInfo">Showing 0 of 0 pending requests</div>
+            <div class="pagination-buttons">
+              <button class="btn-page" id="btnPrevPending" onclick="changePendingPage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <button class="btn-page" id="btnNextPending" onclick="changePendingPage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
 
-function closeLogoutModal() {
-  const modal = document.getElementById('logoutModal');
-  if (modal) modal.style.display = 'none';
-}
+        </div>
+      </section>
 
-function confirmLogout() {
-  localStorage.removeItem('carlift_admin_token');
-  localStorage.removeItem('supabase_admin_token');
-  window.location.href = 'login.html';
-}
+      <!-- ================= SECTION 6: QR CODE SCANNER ================= -->
+      <section id="view-qrscanner" class="view-section">
+        <div class="table-card" style="padding: 24px; text-align: center;">
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 18px; font-weight: 800; color: #0f172a;"><i class="fa-solid fa-qrcode" style="color: #2563eb;"></i> Passenger QR Code Verification Scanner</h3>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Point the phone or laptop camera at the passenger's QR code to immediately verify their balance and status.</p>
+          </div>
+
+          <!-- Scanner Viewport Container -->
+          <div id="qrReader" style="width: 100%; max-width: 420px; margin: 0 auto; border-radius: 16px; overflow: hidden; border: 2px dashed #cbd5e1; background: #f8fafc;"></div>
+          
+          <div style="margin-top: 16px; display: flex; justify-content: center;">
+            <button class="btn-owner-primary" onclick="openQRScannerModal()" style="padding: 10px 24px;">
+              <i class="fa-solid fa-camera"></i> Start Scanner
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 7: SETTINGS ================= -->
+      <section id="view-settings" class="view-section">
+        <div class="settings-grid">
+          <div class="settings-card">
+            <h3><i class="fa-solid fa-bus" style="color: #2563eb;"></i> Fleet & Capacity Config</h3>
+            <div class="form-field">
+              <label>Maximum Van Seats Capacity</label>
+              <input type="number" id="settingCapacityInput" value="14" onchange="updateVanCapacitySetting(this.value)" />
+            </div>
+            <p style="font-size: 12px; color: #64748b;">Default is set to 14 Seats. Changing this value dynamically updates the Occupancy % across the system.</p>
+          </div>
+
+          <div class="settings-card">
+            <h3><i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Owner Credentials</h3>
+            <div class="form-field">
+              <label>Admin Username</label>
+              <input type="text" value="admin" disabled style="background: #f1f5f9;" />
+            </div>
+            <div class="form-field">
+              <label>Default Password</label>
+              <input type="text" value="admin123" disabled style="background: #f1f5f9;" />
+            </div>
+            <p style="font-size: 12px; color: #64748b;">Password resets can be handled via Recovery PIN (123456) on the login page.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- CASH PAYMENT RECORD MODAL -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-cash-register"></i> Record Cash Payment</h3>
+        <button class="modal-close" onclick="closePaymentModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Passenger ID *</label>
+          <input type="text" id="modalPassengerId" placeholder="e.g. P-0001" />
+        </div>
+        <div class="form-group">
+          <label>Amount Collected (AED) *</label>
+          <input type="number" id="modalAmount" value="250" />
+        </div>
+        <div class="form-group">
+          <label>Collected By *</label>
+          <input type="text" id="modalCollector" value="Owner" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closePaymentModal()">Cancel</button>
+        <button class="btn-action-approve" onclick="submitModalPayment()">Confirm & Activate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATE PAYMENT DATE & PARTIAL AMOUNT MODAL -->
+  <div class="modal-overlay" id="updatePaymentDateModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header" style="background: #2563eb;">
+        <h3><i class="fa-solid fa-cash-register"></i> Record Payment & Update Date</h3>
+        <button class="modal-close" onclick="closeUpdatePaymentDateModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">
+          Record payment for <b id="updateModalPassengerName" style="color: #0f172a;"></b> (Monthly Rate: AED 250)
+        </p>
+        
+        <!-- Amount Selection -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label>Amount Paid (AED) *</label>
+          <input type="text" id="modalPartialAmount" placeholder="Choose Payment" class="form-control" />
+          
+          <!-- Quick Amount Buttons -->
+          <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+            <button type="button" onclick="setModalAmount(50)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 50</button>
+            <button type="button" onclick="setModalAmount(100)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 100</button>
+            <button type="button" onclick="setModalAmount(150)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 150</button>
+            <button type="button" onclick="setModalAmount(200)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 200</button>
+            <button type="button" onclick="setModalAmount(250)" style="padding: 6px 12px; background: #e0f2fe; border: 1px solid #bae6fd; color: #0284c7; border-radius: 6px; font-weight: 700; cursor: pointer;">Full AED 250</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Payment Date *</label>
+          <input type="date" id="modalNewPaymentDate" />
+        </div>
+
+        <input type="hidden" id="modalUpdatePassengerId" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeUpdatePaymentDateModal()">Cancel</button>
+        <button class="btn-action-approve" style="background:#2563eb;" onclick="confirmUpdatePaymentDate()">Save Payment Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS PAYMENT RECEIVER / RECEIPT MODAL (Auto-Close 3s) -->
+  <div class="modal-overlay" id="successReceiptModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;">
+    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="font-size: 42px; color: #10b981; margin-bottom: 10px;"><i class="fa-solid fa-circle-check"></i></div>
+      <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 4px;">Payment Successful!</h3>
+      <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">Cash payment recorded and approved successfully by Owner.</p>
+      
+      <!-- Receipt Info Box -->
+      <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 12px; margin-bottom: 16px; text-align: left; font-size: 13px; color: #334155;">
+        <div><b>Passenger:</b> <span id="receiptPassengerName">-</span></div>
+        <div><b>Amount Paid:</b> <span id="receiptAmount" style="color: #10b981; font-weight: 700;">-</span></div>
+        <div><b>Receiver:</b> <span id="receiptCollector">Owner</span></div>
+      </div>
+
+      <div style="font-size: 12px; color: #94a3b8; font-weight: 600; margin-bottom: 16px;">Closing automatically in <span id="receiptCountdownNum" style="color: #2563eb;">3</span>s...</div>
+      <button type="button" onclick="closeSuccessReceiptModal()" style="width: 100%; padding: 10px 24px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">Done</button>
+    </div>
+  </div>
+
+  <!-- PASSENGER PHOTO PREVIEW MODAL -->
+  <div class="modal-overlay" id="imageModal">
+    <div class="modal-box" style="max-width: 420px; text-align: center;">
+      <div class="modal-header">
+        <h3 id="imageModalTitle"><i class="fa-solid fa-id-card"></i> Passenger Photo</h3>
+        <button class="modal-close" onclick="closeImageModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        <img id="imageModalPreview" src="" alt="Passenger Photo" style="width: 100%; max-height: 380px; object-fit: contain; border-radius: 14px; border: 1px solid var(--border-color); box-shadow: 0 4px 16px rgba(0,0,0,0.08);" />
+      </div>
+      <div class="modal-footer" style="justify-content: center;">
+        <button class="btn-action-approve" style="background: #0f172a;" onclick="closeImageModal()">Close Preview</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERIFY / APPROVE MODAL -->
+  <div id="verifyModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Approval </h3>
+        <button class="modal-close" onclick="closeVerifyModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p style="font-size: 14px; color: #475569;">Are you sure you want to approve <b id="verifyModalPassengerName" style="color: #0f172a;"></b>?</p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 10px;">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeVerifyModal()">Cancel</button>
+        <button class="btn-action-approve" style="background:#10b981;" onclick="confirmVerifyPayment()">Yes, Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE PASSENGER MODAL -->
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+      <div class="modal-header">
+        <h3 id="deleteModalTitle"><i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Delete Passenger</h3>
+        <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p id="deleteModalMessage" style="font-size: 14px; color: #475569;">Are you sure you want to delete <b id="deleteModalPassengerName" style="color: #0f172a;"></b>?</p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 10px;">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn-action-delete" style="padding: 10px 18px; border-radius: 8px;" onclick="confirmDeletePassenger()">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATE WORKING TIME MODAL -->
+  <div class="modal-overlay" id="updateWorkingTimeModal">
+    <div class="modal-box" style="max-width: 420px;">
+      <div class="modal-header" style="background: #2563eb;">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Update Working Time</h3>
+        <button class="modal-close" onclick="closeUpdateWorkingTimeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">
+          Update working shift for <b id="workingTimePassengerName" style="color: #0f172a;"></b>
+        </p>
+        
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Working Time *</label>
+          <div class="time-grid" style="display: flex; gap: 12px;">
+            <div style="flex: 1;">
+              <span style="font-size: 11px; color: #64748b;">Morning Time:</span>
+              <input type="time" id="modalPickupTime" class="form-control" required value="08:00" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;" />
+            </div>
+            <div style="flex: 1;">
+              <span style="font-size: 11px; color: #64748b;">Afternoon Time:</span>
+              <input type="time" id="modalReturnTime" class="form-control" required value="17:00" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;" />
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" id="modalWorkingTimePassengerId" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeUpdateWorkingTimeModal()">Cancel</button>
+        <button class="btn-action-approve" style="background:#2563eb;" onclick="confirmUpdateWorkingTime()">Save Working Time</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCANNER RESULT / PASSENGER PROFILE MODAL -->
+  <div class="modal-overlay" id="qrResultModal">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+      <div class="modal-header" style="background: #0f172a;">
+        <h3><i class="fa-solid fa-id-card" style="color: #38bdf8;"></i> Passenger Verified</h3>
+        <button class="modal-close" onclick="closeQRResultModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body" style="padding: 20px;">
+        <img id="qrScanPhoto" src="" alt="Passenger Photo" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #2563eb; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(37,99,235,0.2);" />
+
+        <h4 id="qrScanName" style="font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">-</h4>
+        <div id="qrScanPhone" style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 16px;">-</div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: left; font-size: 13px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #64748b; font-weight: 600;">Status:</span>
+            <span id="qrScanStatusBadge" class="badge badge-active">-</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #64748b; font-weight: 600;">Latest Payment:</span>
+            <b id="qrScanLatestPayment" style="color: #2563eb; font-size: 13px;">No record</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #64748b; font-weight: 600;">Remaining Balance:</span>
+            <b id="qrScanBalance" style="color: #ef4444; font-size: 14px;">AED 0</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #64748b; font-weight: 600;">25-Day Cycle:</span>
+            <b id="qrScanCountdown" style="color: #0f172a;">-</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="flex-direction: column; gap: 8px;">
+        <div style="display: flex; gap: 8px; width: 100%;">
+          <button class="btn-action-update" id="qrScanUpdatePayBtn" style="flex: 1; padding: 10px; background: #10b981; color: #fff; border-radius: 8px; font-weight: 700; border: none; cursor: pointer;"><i class="fa-solid fa-cash-register"></i> Update Pay</button>
+          <button class="btn-owner-primary" style="flex:1;" onclick="closeQRResultModal(); openQRScannerModal();">Scan Next</button>
+        </div>
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none; width: 100%;" onclick="closeQRResultModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGOUT CONFIRMATION MODAL -->
+  <div class="modal-overlay" id="logoutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="font-size: 40px; margin-bottom: 10px;">🔒</div>
+      <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 8px;">Confirm Logout</h3>
+      <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Are you sure you want to end your owner session and logout?</p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button type="button" onclick="closeLogoutModal()" style="padding: 10px 20px; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">No, Stay</button>
+        <button type="button" onclick="confirmLogout()" style="padding: 10px 20px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Yes, Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- External JavaScript Logic -->
+  <script src="../js/admin.js"></script>
+</body>
+</html>
