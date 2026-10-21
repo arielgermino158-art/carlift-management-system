@@ -24,10 +24,11 @@
 </head>
 <body>
 
-  <!-- SECURITY CHECK SCRIPT -->
+  <!-- SECURITY CHECK SCRIPT: Sisiguraduhing may token bago tuluyang ipakita ang UI -->
   <script>
     (async function() {
       const token = localStorage.getItem('supabase_admin_token') || sessionStorage.getItem('supabase_admin_token') || localStorage.getItem('carlift_admin_token');
+      
       if (!token) {
         window.location.href = '/login.html';
         return;
@@ -41,7 +42,7 @@
   <!-- Sidebar Navigation -->
   <aside class="sidebar" id="sidebar">
     <div>
-      <!-- BRAND LOGO -->
+      <!-- BRAND LOGO WITH MS LOGO IMAGE -->
       <div class="brand">
         <img src="/images/MS Logo For My System.jpeg" alt="MS Logo" class="admin-brand-logo">
         <span>Carlift OS</span>
@@ -55,7 +56,7 @@
           <span><i class="fa-solid fa-users"></i> Passengers List</span>
         </li>
 
-        <!-- SUB-TABS SA BABA NG PASSENGER LIST -->
+        <!-- TATLONG BAGONG TABS SA BABA NG PASSENGER LIST -->
         <li class="nav-item nav-sub-item" onclick="switchTab('fullpaid', event)" style="padding-left: 28px; font-size: 13px;">
           <span><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Full Paid</span>
           <span id="fbFullPaidBadge" class="fb-badge" style="background: #10b981; color: #fff; display: none;">0</span>
@@ -76,11 +77,13 @@
           <span><i class="fa-solid fa-chart-line"></i> Revenue Reports</span>
         </li>
 
+        <!-- AWAITING APPROVAL SIDEBAR ITEM -->
         <li class="nav-item" onclick="switchTab('awaiting', event)">
           <span><i class="fa-solid fa-clock"></i> Awaiting Approval</span>
           <span id="fbAwaitingBadge" class="fb-badge" style="display: none;">0</span>
         </li>
 
+        <!-- QR CODE SCANNER SIDEBAR ITEM -->
         <li class="nav-item" onclick="switchTab('qrscanner', event)">
           <span><i class="fa-solid fa-qrcode"></i> QR Code Scanner</span>
         </li>
@@ -131,6 +134,8 @@
 
       <!-- ================= SECTION 1: DASHBOARD ================= -->
       <section id="view-dashboard" class="view-section active">
+
+        <!-- HERO SAAS BANNER -->
         <div class="hero-action-card">
           <div class="hero-left-info">
             <div class="hero-tag-pills">
@@ -153,6 +158,7 @@
           </div>
         </div>
 
+        <!-- 4 KPI Cards -->
         <div class="kpi-grid">
           <div class="kpi-card">
             <div>
@@ -191,6 +197,7 @@
           </div>
         </div>
 
+        <!-- MODERN DOUGHNUT COLLECTION ANALYTICS -->
         <div class="chart-container-box" style="background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid var(--border-color, #e2e8f0); box-shadow: 0 4px 16px rgba(0,0,0,0.04); margin-top: 24px; display: flex; flex-direction: column; gap: 16px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
@@ -263,9 +270,12 @@
                   <th style="text-align: center;">Quick Action</th>
                 </tr>
               </thead>
-              <tbody id="allPassengersTableBody"></tbody>
+              <tbody id="allPassengersTableBody">
+                <!-- Injected by JS -->
+              </tbody>
             </table>
           </div>
+          <!-- PAGINATION CONTROLS -->
           <div class="pagination-container">
             <div class="pagination-info" id="passengersPageInfo">Showing 0 of 0 passengers</div>
             <div class="pagination-buttons">
@@ -280,7 +290,7 @@
         </div>
       </section>
 
-      <!-- ================= SECTION 2A: FULL PAID ================= -->
+      <!-- ================= SECTION 2A: FULL PAID PASSENGERS ================= -->
       <section id="view-fullpaid" class="view-section">
         <div class="table-card">
           <div class="table-header" style="background: #ecfdf5;">
@@ -299,7 +309,7 @@
         </div>
       </section>
 
-      <!-- ================= SECTION 2B: PARTIAL ================= -->
+      <!-- ================= SECTION 2B: PARTIAL PASSENGERS ================= -->
       <section id="view-partial" class="view-section">
         <div class="table-card">
           <div class="table-header" style="background: #fffbeb;">
@@ -318,7 +328,7 @@
         </div>
       </section>
 
-      <!-- ================= SECTION 2C: UNPAID ================= -->
+      <!-- ================= SECTION 2C: UNPAID PASSENGERS ================= -->
       <section id="view-unpaid" class="view-section">
         <div class="table-card">
           <div class="table-header" style="background: #fef2f2;">
@@ -361,9 +371,12 @@
                   <th>Payment Date</th>
                 </tr>
               </thead>
-              <tbody id="paymentsTableBody"></tbody>
+              <tbody id="paymentsTableBody">
+                <!-- Injected by JS -->
+              </tbody>
             </table>
           </div>
+          <!-- PAGINATION CONTROLS -->
           <div class="pagination-container">
             <div class="pagination-info" id="paymentsPageInfo">Showing 0 of 0 payment logs</div>
             <div class="pagination-buttons">
@@ -403,9 +416,12 @@
                   <th>Total Route Revenue</th>
                 </tr>
               </thead>
-              <tbody id="routeReportTableBody"></tbody>
+              <tbody id="routeReportTableBody">
+                <!-- Injected by JS -->
+              </tbody>
             </table>
           </div>
+          <!-- PAGINATION CONTROLS -->
           <div class="pagination-container">
             <div class="pagination-info" id="reportsPageInfo">Showing 0 of 0 routes</div>
             <div class="pagination-buttons">
@@ -443,9 +459,13 @@
                   <th>Quick Action</th>
                 </tr>
               </thead>
-              <tbody id="pendingTableBody"></tbody>
+              <tbody id="pendingTableBody">
+                <!-- Injected by JS -->
+              </tbody>
             </table>
           </div>
+
+          <!-- PAGINATION CONTROLS -->
           <div class="pagination-container">
             <div class="pagination-info" id="pendingPageInfo">Showing 0 of 0 pending requests</div>
             <div class="pagination-buttons">
@@ -457,6 +477,7 @@
               </button>
             </div>
           </div>
+
         </div>
       </section>
 
@@ -465,8 +486,12 @@
         <div class="table-card" style="padding: 24px; text-align: center;">
           <div style="margin-bottom: 20px;">
             <h3 style="font-size: 18px; font-weight: 800; color: #0f172a;"><i class="fa-solid fa-qrcode" style="color: #2563eb;"></i> Passenger QR Code Verification Scanner</h3>
-            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Point camera at passenger's QR code to verify balance and status.</p>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Point the phone or laptop camera at the passenger's QR code to immediately verify their balance and status.</p>
           </div>
+
+          <!-- Scanner Viewport Container -->
+          <div id="qrReader" style="width: 100%; max-width: 420px; margin: 0 auto; border-radius: 16px; overflow: hidden; border: 2px dashed #cbd5e1; background: #f8fafc;"></div>
+          
           <div style="margin-top: 16px; display: flex; justify-content: center;">
             <button class="btn-owner-primary" onclick="openQRScannerModal()" style="padding: 10px 24px;">
               <i class="fa-solid fa-camera"></i> Start Scanner
@@ -484,7 +509,20 @@
               <label>Maximum Van Seats Capacity</label>
               <input type="number" id="settingCapacityInput" value="14" onchange="updateVanCapacitySetting(this.value)" />
             </div>
-            <p style="font-size: 12px; color: #64748b;">Default is set to 14 Seats.</p>
+            <p style="font-size: 12px; color: #64748b;">Default is set to 14 Seats. Changing this value dynamically updates the Occupancy % across the system.</p>
+          </div>
+
+          <div class="settings-card">
+            <h3><i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Owner Credentials</h3>
+            <div class="form-field">
+              <label>Admin Username</label>
+              <input type="text" value="admin" disabled style="background: #f1f5f9;" />
+            </div>
+            <div class="form-field">
+              <label>Default Password</label>
+              <input type="text" value="admin123" disabled style="background: #f1f5f9;" />
+            </div>
+            <p style="font-size: 12px; color: #64748b;">Password resets can be handled via Recovery PIN (123456) on the login page.</p>
           </div>
         </div>
       </section>
@@ -520,7 +558,7 @@
     </div>
   </div>
 
-  <!-- UPDATE PAYMENT DATE MODAL -->
+  <!-- UPDATE PAYMENT DATE & PARTIAL AMOUNT MODAL -->
   <div class="modal-overlay" id="updatePaymentDateModal">
     <div class="modal-box" style="max-width: 440px;">
       <div class="modal-header" style="background: #2563eb;">
@@ -529,11 +567,15 @@
       </div>
       <div class="modal-body">
         <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">
-          Record payment for <b id="updateModalPassengerName" style="color: #0f172a;"></b>
+          Record payment for <b id="updateModalPassengerName" style="color: #0f172a;"></b> (Monthly Rate: AED 250)
         </p>
+        
+        <!-- Amount Selection -->
         <div class="form-group" style="margin-bottom: 16px;">
           <label>Amount Paid (AED) *</label>
           <input type="text" id="modalPartialAmount" placeholder="Choose Payment" class="form-control" />
+          
+          <!-- Quick Amount Buttons -->
           <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
             <button type="button" onclick="setModalAmount(50)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 50</button>
             <button type="button" onclick="setModalAmount(100)" style="padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">AED 100</button>
@@ -542,16 +584,37 @@
             <button type="button" onclick="setModalAmount(250)" style="padding: 6px 12px; background: #e0f2fe; border: 1px solid #bae6fd; color: #0284c7; border-radius: 6px; font-weight: 700; cursor: pointer;">Full AED 250</button>
           </div>
         </div>
+
         <div class="form-group">
           <label>Payment Date *</label>
           <input type="date" id="modalNewPaymentDate" />
         </div>
+
         <input type="hidden" id="modalUpdatePassengerId" />
       </div>
       <div class="modal-footer">
         <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeUpdatePaymentDateModal()">Cancel</button>
         <button class="btn-action-approve" style="background:#2563eb;" onclick="confirmUpdatePaymentDate()">Save Payment Log</button>
       </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS PAYMENT RECEIVER / RECEIPT MODAL (Auto-Close 3s) -->
+  <div class="modal-overlay" id="successReceiptModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;">
+    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="font-size: 42px; color: #10b981; margin-bottom: 10px;"><i class="fa-solid fa-circle-check"></i></div>
+      <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 4px;">Payment Successful!</h3>
+      <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">Cash payment recorded and approved successfully by Owner.</p>
+      
+      <!-- Receipt Info Box -->
+      <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 12px; margin-bottom: 16px; text-align: left; font-size: 13px; color: #334155;">
+        <div><b>Passenger:</b> <span id="receiptPassengerName">-</span></div>
+        <div><b>Amount Paid:</b> <span id="receiptAmount" style="color: #10b981; font-weight: 700;">-</span></div>
+        <div><b>Receiver:</b> <span id="receiptCollector">Owner</span></div>
+      </div>
+
+      <div style="font-size: 12px; color: #94a3b8; font-weight: 600; margin-bottom: 16px;">Closing automatically in <span id="receiptCountdownNum" style="color: #2563eb;">3</span>s...</div>
+      <button type="button" onclick="closeSuccessReceiptModal()" style="width: 100%; padding: 10px 24px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">Done</button>
     </div>
   </div>
 
@@ -571,37 +634,90 @@
     </div>
   </div>
 
-  <!-- QR SCANNER CAMERA POPUP MODAL -->
-  <div class="modal-overlay" id="qrScannerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center;">
-    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 450px; width: 90%; text-align: center; position: relative;">
-      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0;"><i class="fa-solid fa-camera" style="color: #2563eb;"></i> Scan Passenger QR Code</h3>
-        <button class="modal-close" onclick="closeQRScannerModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
+  <!-- VERIFY / APPROVE MODAL -->
+  <div id="verifyModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Approval </h3>
+        <button class="modal-close" onclick="closeVerifyModal()">&times;</button>
       </div>
-      <div id="qrReader" style="width: 100%; border-radius: 12px; overflow: hidden; border: 2px dashed #cbd5e1; background: #000; min-height: 250px;"></div>
-      <p style="font-size: 12px; color: #64748b; margin-top: 12px;">I-tapat ang camera sa QR code ng pasahero.</p>
-      <div style="margin-top: 16px;">
-        <button type="button" class="btn-action-approve" style="background: #cbd5e1; color: #334155; box-shadow: none; width: 100%;" onclick="closeQRScannerModal()">Cancel</button>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p style="font-size: 14px; color: #475569;">Are you sure you want to approve <b id="verifyModalPassengerName" style="color: #0f172a;"></b>?</p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 10px;">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeVerifyModal()">Cancel</button>
+        <button class="btn-action-approve" style="background:#10b981;" onclick="confirmVerifyPayment()">Yes, Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE PASSENGER MODAL -->
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+      <div class="modal-header">
+        <h3 id="deleteModalTitle"><i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Delete Passenger</h3>
+        <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p id="deleteModalMessage" style="font-size: 14px; color: #475569;">Are you sure you want to delete <b id="deleteModalPassengerName" style="color: #0f172a;"></b>?</p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 10px;">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn-action-delete" style="padding: 10px 18px; border-radius: 8px;" onclick="confirmDeletePassenger()">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATE WORKING TIME MODAL -->
+  <div class="modal-overlay" id="updateWorkingTimeModal">
+    <div class="modal-box" style="max-width: 420px;">
+      <div class="modal-header" style="background: #2563eb;">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Update Working Time</h3>
+        <button class="modal-close" onclick="closeUpdateWorkingTimeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">
+          Update working shift for <b id="workingTimePassengerName" style="color: #0f172a;"></b>
+        </p>
+        
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Working Time *</label>
+          <div class="time-grid" style="display: flex; gap: 12px;">
+            <div style="flex: 1;">
+              <span style="font-size: 11px; color: #64748b;">Morning Time:</span>
+              <input type="time" id="modalPickupTime" class="form-control" required value="08:00" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;" />
+            </div>
+            <div style="flex: 1;">
+              <span style="font-size: 11px; color: #64748b;">Afternoon Time:</span>
+              <input type="time" id="modalReturnTime" class="form-control" required value="17:00" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;" />
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" id="modalWorkingTimePassengerId" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action-approve" style="background:#cbd5e1; color:#334155; box-shadow:none;" onclick="closeUpdateWorkingTimeModal()">Cancel</button>
+        <button class="btn-action-approve" style="background:#2563eb;" onclick="confirmUpdateWorkingTime()">Save Working Time</button>
       </div>
     </div>
   </div>
 
   <!-- SCANNER RESULT / PASSENGER PROFILE MODAL -->
   <div class="modal-overlay" id="qrResultModal">
-    <div class="modal-box" style="max-width: 420px; text-align: center;">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
       <div class="modal-header" style="background: #0f172a;">
         <h3><i class="fa-solid fa-id-card" style="color: #38bdf8;"></i> Passenger Verified</h3>
         <button class="modal-close" onclick="closeQRResultModal()">&times;</button>
       </div>
       
       <div class="modal-body" style="padding: 20px;">
-        <!-- CLICKABLE PHOTO -->
-        <img id="qrScanPhoto" src="" alt="Passenger Photo" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #2563eb; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(37,99,235,0.2); cursor: pointer;" title="Click to view full image" />
+        <img id="qrScanPhoto" src="" alt="Passenger Photo" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #2563eb; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(37,99,235,0.2);" />
 
         <h4 id="qrScanName" style="font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">-</h4>
         <div id="qrScanPhone" style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 16px;">-</div>
 
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: left; font-size: 13px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: left; font-size: 13px; display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="color: #64748b; font-weight: 600;">Status:</span>
             <span id="qrScanStatusBadge" class="badge badge-active">-</span>
@@ -619,11 +735,6 @@
             <b id="qrScanCountdown" style="color: #0f172a;">-</b>
           </div>
         </div>
-
-        <!-- QUICK RECORD PAYMENT BUTTON -->
-        <button id="qrRecordPayBtn" type="button" class="btn-owner-primary" style="width: 100%; padding: 10px; font-weight: 700; background: #10b981; border: none; border-radius: 8px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16,185,129,0.25);">
-          <i class="fa-solid fa-cash-register"></i> Record / Add Payment Now
-        </button>
       </div>
 
       <div class="modal-footer" style="justify-content: space-between; gap: 10px;">
@@ -635,17 +746,18 @@
 
   <!-- LOGOUT CONFIRMATION MODAL -->
   <div class="modal-overlay" id="logoutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
-    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 380px; width: 90%; text-align: center;">
+    <div class="modal-box" style="background: #fff; padding: 24px; border-radius: 16px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
       <div style="font-size: 40px; margin-bottom: 10px;">🔒</div>
       <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 8px;">Confirm Logout</h3>
-      <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Are you sure you want to end your owner session?</p>
+      <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Are you sure you want to end your owner session and logout?</p>
       <div style="display: flex; gap: 12px; justify-content: center;">
-        <button type="button" onclick="closeLogoutModal()" style="padding: 10px 20px; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; font-weight: 700;">No, Stay</button>
-        <button type="button" onclick="confirmLogout()" style="padding: 10px 20px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-weight: 700;">Yes, Logout</button>
+        <button type="button" onclick="closeLogoutModal()" style="padding: 10px 20px; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">No, Stay</button>
+        <button type="button" onclick="confirmLogout()" style="padding: 10px 20px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Yes, Logout</button>
       </div>
     </div>
   </div>
 
+  <!-- External JavaScript Logic -->
   <script src="../js/admin.js"></script>
 </body>
 </html>
