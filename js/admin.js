@@ -15,18 +15,13 @@ let currentPaymentPage = 1;
 let currentReportPage = 1;
 let currentPendingPage = 1;
 
-// TEMPORARY ID STORAGE PARA SA MODALS
 let pendingActionPassengerId = null;
-let currentDeleteContext = 'passenger'; // 'passenger' or 'approval'
+let currentDeleteContext = 'passenger';
 
-// GLOBAL TIMERS PARA SA AUTO-CLOSE NG NOTIFICATIONS AT SUCCESS RECEIPTS
 let customAlertTimer = null;
 let receiptTimer = null;
-
-// QR SCANNER INSTANCE
 let html5QrCodeScanner = null;
 
-// HELPER: GET AUTH HEADERS
 function getAuthHeaders() {
   const token = localStorage.getItem('carlift_admin_token') || localStorage.getItem('supabase_admin_token');
   return {
@@ -69,9 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target === this) {
         this.classList.remove('active');
         this.style.display = 'none';
-        if (this.id === 'successReceiptModal') {
-          if (typeof loadDashboard === 'function') loadDashboard();
-        }
         if (this.id === 'qrScannerModal' || this.id === 'view-qrscanner') {
           stopQRScanner();
         }
@@ -108,14 +100,6 @@ function switchTab(tabName, event) {
   if (tabName === 'reports') {
     loadReportsData();
   }
-}
-
-function closeQRScannerView() {
-  stopQRScanner();
-  switchTab('dashboard', null);
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  const dashNav = document.querySelector('.nav-menu .nav-item');
-  if (dashNav) dashNav.classList.add('active');
 }
 
 function updateVanCapacitySetting(val) {
@@ -341,19 +325,16 @@ function renderPendingTable(pendingList) {
         if (!timeText || timeText === 'N/A') timeText = parts[1].trim();
       }
 
-      const rawDateToFormat = p.join_date || p.created_at;
-      const joinedDateFormatted = rawDateToFormat ? formatDateOnly(rawDateToFormat) : 'N/A';
-
       const row = `
         <tr>
           <td><span class="id-chip">${p.id}</span></td>
           <td style="font-weight: 800; color: #0f172a;">${p.name || 'N/A'}</td>
-          <td><img src="${photoSrc}" class="avatar-img" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view full photo" /></td>
+          <td><img src="${photoSrc}" class="avatar-img" onclick="openImageModal('${photoSrc}', '${p.name || 'Passenger'}')" title="Click to view photo" /></td>
           <td><a href="https://wa.me/${cleanPhone}" target="_blank" class="whatsapp-link"><i class="fa-brands fa-whatsapp"></i> ${p.whatsapp || p.mobile || 'N/A'}</a></td>
           <td><b>${p.pickup || 'N/A'}</b> → <b>${p.dropoff || 'N/A'}</b></td>
           <td>${scheduleText || 'N/A'}</td>
           <td>${timeText || 'N/A'}</td>
-          <td>${joinedDateFormatted}</td>
+          <td>${formatDateOnly(p.join_date || p.created_at)}</td>
           <td><span class="badge badge-pending">${p.status || 'Pending'}</span></td>
           <td>
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -449,7 +430,7 @@ function renderMasterlistTable(data) {
         <tr>
           <td><span class="id-chip">${p.id}</span></td>
           <td><b>${p.name}</b></td>
-          <td><img src="${photoSrc}" class="avatar-img" onclick="openImageModal('${photoSrc}', '${p.name}')" title="Click to view full photo" /></td>
+          <td><img src="${photoSrc}" class="avatar-img" onclick="openImageModal('${photoSrc}', '${p.name}')" title="Click to view photo" /></td>
           <td><a href="https://wa.me/${cleanPhone}" target="_blank" class="whatsapp-link"><i class="fa-brands fa-whatsapp"></i> ${p.whatsapp || p.mobile || 'N/A'}</a></td>
           <td>${p.pickup} → ${p.dropoff}</td>
           <td>${p.schedule || 'N/A'}</td>
@@ -465,28 +446,67 @@ function renderMasterlistTable(data) {
   }
 }
 
-/* ================= QR CODE SCANNER & CLICKABLE PHOTO PREVIEW ================= */
+/* ================= QR CODE SCANNER CONTROLS ================= */
 function openQRScannerModal() {
   const modal = document.getElementById('qrScannerModal');
-  if (modal) modal.style.display = 'flex';
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
 
   if (typeof Html5Qrcode !== 'undefined') {
-    if (!html5QrCodeScanner) html5QrCodeScanner = new Html5Qrcode("qrReader");
-    html5QrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => handleScannedQRCode(text)).catch(() => {});
+    if (!html5QrCodeScanner) {
+      html5QrCodeScanner = new Html5Qrcode("qrReader");
+    }
+    
+    html5QrCodeScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        handleScannedQRCode(decodedText);
+      },
+      () => {}
+    ).catch(err => {
+      console.warn("Camera access error:", err);
+      showToastNotification("Unable to access camera.");
+    });
+  } else {
+    showToastNotification("QR Scanner library not loaded.");
   }
 }
 
 function stopQRScanner() {
   if (html5QrCodeScanner) {
-    html5QrCodeScanner.stop().then(() => { html5QrCodeScanner.clear(); html5QrCodeScanner = null; }).catch(() => {});
+    html5QrCodeScanner.stop().then(() => {
+      html5QrCodeScanner.clear();
+      html5QrCodeScanner = null;
+    }).catch(err => {
+      console.warn("Error stopping scanner:", err);
+      html5QrCodeScanner = null;
+    });
   }
 }
 
-function closeQRScannerModal() { stopQRScanner(); const m = document.getElementById('qrScannerModal'); if (m) m.style.display = 'none'; }
-function closeQRResultModal() { const m = document.getElementById('qrResultModal'); if (m) m.style.display = 'none'; }
+function closeQRScannerModal() {
+  stopQRScanner();
+  const modal = document.getElementById('qrScannerModal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
+}
+
+function closeQRResultModal() {
+  const modal = document.getElementById('qrResultModal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
+}
 
 function handleScannedQRCode(scannedCode) {
   stopQRScanner();
+  closeQRScannerModal();
   if (!scannedCode) return;
 
   let cleanCode = scannedCode.trim();
@@ -513,7 +533,6 @@ function handleScannedQRCode(scannedCode) {
 
     if (photoElem) {
       photoElem.src = photoSrc;
-      // CLICK PHOTO TO PREVIEW IN LARGE MODAL
       photoElem.onclick = function() {
         openImageModal(photoSrc, matchedPassenger.name);
       };
@@ -555,7 +574,6 @@ function handleScannedQRCode(scannedCode) {
     if (balanceElem) balanceElem.innerText = `AED ${remainingBalance}`;
     if (countdownElem) countdownElem.innerText = isExpired ? 'Expired / Overdue' : `${daysLeft} Days Left`;
 
-    // QUICK RECORD PAYMENT BUTTON HANDLER
     if (recordPayBtn) {
       recordPayBtn.onclick = function() {
         closeQRResultModal();
@@ -570,7 +588,7 @@ function handleScannedQRCode(scannedCode) {
   }
 }
 
-/* ================= MODAL CONTROLS & DATE FORMATTERS ================= */
+/* ================= UTILITY & MODAL CONTROLS ================= */
 function formatDateOnly(d) {
   if (!d) return 'N/A';
   let dateObj = new Date(d);
