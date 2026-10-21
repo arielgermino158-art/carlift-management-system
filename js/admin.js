@@ -281,7 +281,7 @@ function renderCategorizedTables(passengers) {
           <tr>
             <td><span class="id-chip">${p.id}</span></td>
             <td><b>${p.name}</b></td>
-            <td><img src="${photoSrc}" class="avatar-img" /></td>
+            <td><img src="${photoSrc}" class="avatar-img" onclick="openImageModal('${photoSrc}', '${p.name}')" title="Click to view photo" /></td>
             <td>${p.whatsapp || p.mobile || 'N/A'}</td>
             <td>${p.pickup} → ${p.dropoff}</td>
             <td>${p.time || 'N/A'}</td>
@@ -297,7 +297,7 @@ function renderCategorizedTables(passengers) {
           <tr>
             <td><span class="id-chip">${p.id}</span></td>
             <td><b>${p.name}</b></td>
-            <td><img src="${photoSrc}" class="avatar-img" /></td>
+            <td><img src="${photoSrc}" class="avatar-img" onclick="openImageModal('${photoSrc}', '${p.name}')" title="Click to view photo" /></td>
             <td>${p.whatsapp || p.mobile || 'N/A'}</td>
             <td>${p.pickup} → ${p.dropoff}</td>
             <td>${p.time || 'N/A'}</td>
@@ -313,7 +313,7 @@ function renderCategorizedTables(passengers) {
           <tr>
             <td><span class="id-chip">${p.id}</span></td>
             <td><b>${p.name}</b></td>
-            <td><img src="${photoSrc}" class="avatar-img" /></td>
+            <td><img src="${photoSrc}" class="avatar-img" onclick="openImageModal('${photoSrc}', '${p.name}')" title="Click to view photo" /></td>
             <td>${p.whatsapp || p.mobile || 'N/A'}</td>
             <td>${p.pickup} → ${p.dropoff}</td>
             <td>${p.time || 'N/A'}</td>
@@ -1336,6 +1336,7 @@ function closeQRResultModal() {
 
 function handleScannedQRCode(scannedCode) {
   stopQRScanner();
+  closeQRScannerModal();
   if (!scannedCode) return;
 
   let cleanCode = scannedCode.trim();
@@ -1368,8 +1369,17 @@ function handleScannedQRCode(scannedCode) {
     const latestPaymentElem = document.getElementById('qrScanLatestPayment');
     const balanceElem = document.getElementById('qrScanBalance');
     const countdownElem = document.getElementById('qrScanCountdown');
+    const recordPayBtn = document.getElementById('qrRecordPayBtn');
 
-    if (photoElem) photoElem.src = matchedPassenger.photo || defaultAvatar;
+    const photoSrc = matchedPassenger.photo || defaultAvatar;
+
+    if (photoElem) {
+      photoElem.src = photoSrc;
+      photoElem.onclick = function() {
+        openImageModal(photoSrc, matchedPassenger.name);
+      };
+    }
+
     if (nameElem) nameElem.innerText = `${matchedPassenger.name || 'N/A'} (${matchedPassenger.id || 'N/A'})`;
     if (phoneElem) phoneElem.innerText = matchedPassenger.whatsapp || matchedPassenger.mobile || 'No Phone';
 
@@ -1435,6 +1445,13 @@ function handleScannedQRCode(scannedCode) {
     if (latestPaymentElem) latestPaymentElem.innerText = latestPaymentText;
     if (balanceElem) balanceElem.innerText = `AED ${remainingBalance}`;
     if (countdownElem) countdownElem.innerText = countdownText;
+
+    if (recordPayBtn) {
+      recordPayBtn.onclick = function() {
+        closeQRResultModal();
+        openUpdatePaymentDateModal(matchedPassenger.id, matchedPassenger.name);
+      };
+    }
 
     const resultModal = document.getElementById('qrResultModal');
     if (resultModal) {
