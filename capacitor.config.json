@@ -1,0 +1,9 @@
+{
+  "appId": "com.carlift.management",
+  "appName": "MS Carlift",
+  "webDir": "www",
+  "server": {
+    "url": "https://carlift-management-system.onrender.com/login.html",
+    "cleartext": true
+  }
+}
