@@ -74,7 +74,7 @@
     <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent w-full">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-20 flex items-center justify-between w-full">
             
-            <!-- PUBLIC BRANDING: MS Logo (No Admin Modal) -->
+            <!-- PUBLIC BRANDING: MS Logo -->
             <div class="flex items-center space-x-2 sm:space-x-3 shrink-0 cursor-pointer" onclick="openAdminModal()">
                 <img src="images/ms-logo.jpg" alt="MS Logo" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-500/20 shrink-0">
                 <div class="flex flex-col min-w-0">
@@ -160,15 +160,16 @@
                                 </div>
                             </div>
 
+                            <!-- DYNAMIC TOTAL PASSENGERS CARD -->
                             <div class="bg-slate-900/80 p-3 sm:p-4 rounded-xl border border-slate-800 flex items-center justify-between">
-    <div>
-        <p class="text-[10px] sm:text-xs text-slate-400">Total Passengers</p>
-        <p class="text-base sm:text-xl font-bold text-white" id="totalPassengersCount">0</p>
-    </div>
-    <div class="p-2 sm:p-3 bg-cyan-500/10 rounded-lg text-cyan-400 shrink-0">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-    </div>
-</div>
+                                <div>
+                                    <p class="text-[10px] sm:text-xs text-slate-400">Total Passengers</p>
+                                    <p class="text-base sm:text-xl font-bold text-white" id="totalPassengersCount">0</p>
+                                </div>
+                                <div class="p-2 sm:p-3 bg-cyan-500/10 rounded-lg text-cyan-400 shrink-0">
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                </div>
+                            </div>
 
                             <div class="p-3 bg-gradient-to-r from-blue-900/40 to-cyan-900/40 rounded-xl border border-blue-500/30 flex items-center justify-between text-[10px] sm:text-xs text-blue-300 gap-2">
                                 <span class="truncate">Fleet Optimization Engine</span>
@@ -490,7 +491,7 @@
         </div>
     </div>
 
-    <!-- INTERACTIVITY & ADMIN VERIFICATION SCRIPT -->
+    <!-- INTERACTIVITY & DYNAMIC COUNTER SCRIPT -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             // Scroll Reveal Animation Observer
@@ -535,39 +536,30 @@
                 });
             }
 
-            // Function para i-fetch ang real-time passenger count mula sa API
-async function fetchTotalPassengersCount() {
-    try {
-        const response = await fetch('/api/reports/summary');
-        const data = await response.json();
-        
-        const counterElem = document.getElementById('totalPassengersCount');
-        if (counterElem) {
-            let totalCount = 0;
-            if (data && data.passengers && Array.isArray(data.passengers)) {
-                // Bilangin lang ang mga Active passengers (o lahat ng nasa passenger list)
-                totalCount = data.passengers.filter(p => p.status === 'Active' || p.status !== 'Pending Payment').length;
-            } else if (data && typeof data.count !== 'undefined') {
-                totalCount = data.count;
-            }
-            
-            counterElem.innerText = totalCount.toLocaleString();
-        }
-    } catch (err) {
-        console.warn("Hindi ma-fetch ang passenger count mula sa server:", err);
-        const counterElem = document.getElementById('totalPassengersCount');
-        if (counterElem) {
-            counterElem.innerText = "0";
-        }
-    }
-}
+            // Tawagin ang pag-fetch ng totoong bilang ng pasahero
+            fetchTotalPassengersCount();
+        });
 
-// Tawagin sa DOMContentLoaded:
-document.addEventListener("DOMContentLoaded", function() {
-    // ... (mga kasalukuyang code mo)
-    
-    fetchTotalPassengersCount();
-});
+        // Function para kunin ang totoong bilang ng mga pasahero mula sa API/Database
+        async function fetchTotalPassengersCount() {
+            try {
+                const response = await fetch('/api/reports/summary');
+                const data = await response.json();
+                
+                const counterElem = document.getElementById('totalPassengersCount');
+                if (counterElem) {
+                    let totalCount = 0;
+                    if (data && data.passengers && Array.isArray(data.passengers)) {
+                        totalCount = data.passengers.filter(p => p.status === 'Active' || p.status !== 'Pending Payment').length;
+                    } else if (data && typeof data.count !== 'undefined') {
+                        totalCount = data.count;
+                    }
+                    counterElem.innerText = totalCount.toLocaleString();
+                }
+            } catch (err) {
+                console.warn("Error fetching passenger count:", err);
+            }
+        }
 
         // Admin Modal Controls & Verification Logic
         function openAdminModal() {
