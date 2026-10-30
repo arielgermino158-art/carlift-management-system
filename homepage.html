@@ -74,13 +74,13 @@
     <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent w-full">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-20 flex items-center justify-between w-full">
             
-            <!-- PUBLIC BRANDING: MS Logo (No Admin Modal) -->
-<div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
-    <img src="images/ms-logo.jpg" alt="MS Logo" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-500/20 shrink-0">
-    <div class="flex flex-col min-w-0">
-        <span class="text-xs sm:text-base lg:text-lg font-bold tracking-wider text-white leading-tight truncate">SAJJAD <span class="text-blue-500">KHAN</span></span>
-    </div>
-</div>
+            <!-- PUBLIC BRANDING: MS Logo (Hidden Admin Modal Trigger) -->
+            <div class="flex items-center space-x-2 sm:space-x-3 shrink-0 cursor-pointer" onclick="openAdminModal()" title="Admin Portal Access">
+                <img src="images/ms-logo.jpg" alt="MS Logo" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-500/20 shrink-0">
+                <div class="flex flex-col min-w-0">
+                    <span class="text-xs sm:text-base lg:text-lg font-bold tracking-wider text-white leading-tight truncate">SAJJAD <span class="text-blue-500">KHAN</span></span>
+                </div>
+            </div>
 
             <!-- Desktop Navigation -->
             <nav class="hidden lg:flex items-center space-x-6 text-sm font-medium text-slate-300">
@@ -160,10 +160,11 @@
                                 </div>
                             </div>
 
+                            <!-- DYNAMIC TOTAL BOOKINGS COUNTER -->
                             <div class="bg-slate-900/80 p-3 sm:p-4 rounded-xl border border-slate-800 flex items-center justify-between">
                                 <div>
                                     <p class="text-[10px] sm:text-xs text-slate-400">Today's Bookings</p>
-                                    <p class="text-base sm:text-xl font-bold text-white">1,429</p>
+                                    <p class="text-base sm:text-xl font-bold text-white" id="totalBookingsCount">...</p>
                                 </div>
                                 <div class="p-2 sm:p-3 bg-cyan-500/10 rounded-lg text-cyan-400 shrink-0">
                                     <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
@@ -490,92 +491,7 @@
         </div>
     </div>
 
-    <!-- INTERACTIVITY & ADMIN VERIFICATION SCRIPT -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Scroll Reveal Animation Observer
-            const observerOptions = {
-                root: null,
-                rootMargin: '0px',
-                threshold: 0.1
-            };
-
-            const observer = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('active-reveal');
-                    }
-                });
-            }, observerOptions);
-
-            const revealElements = document.querySelectorAll('.reveal-fade, .reveal-slide-left, .reveal-slide-right, .reveal-zoom');
-            revealElements.forEach(el => observer.observe(el));
-
-            // --- MOBILE MENU TOGGLE LOGIC ---
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const mobileMenu = document.getElementById('mobileMenu');
-            const mobileLinks = document.querySelectorAll('.mobile-link');
-
-            if (mobileMenuBtn && mobileMenu) {
-                mobileMenuBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    mobileMenu.classList.toggle('hidden');
-                });
-
-                mobileLinks.forEach(link => {
-                    link.addEventListener('click', function() {
-                        mobileMenu.classList.add('hidden');
-                    });
-                });
-
-                document.addEventListener('click', function(e) {
-                    if (!mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-                        mobileMenu.classList.add('hidden');
-                    }
-                });
-            }
-        });
-
-        // Admin Modal Controls & Verification Logic
-        function openAdminModal() {
-            document.getElementById('adminModal').classList.remove('hidden');
-            document.getElementById('companyInput').focus();
-        }
-
-        function closeAdminModal() {
-            document.getElementById('adminModal').classList.add('hidden');
-            document.getElementById('companyInput').value = '';
-        }
-
-        function verifyAdmin(event) {
-            event.preventDefault();
-            const inputVal = document.getElementById('companyInput').value.trim().toLowerCase();
-            
-            const validNames = ["ms sajjad khan", "ms carlift", "sajjad khan", "sajjad"];
-
-            const btnText = document.getElementById('btnText');
-            const btnSpinner = document.getElementById('btnSpinner');
-
-            if (validNames.some(name => inputVal.includes(name))) {
-                document.getElementById('adminModal').classList.add('hidden');
-
-                btnText.textContent = "Verifying...";
-                btnSpinner.classList.remove('hidden');
-
-                setTimeout(() => {
-                    const toast = document.getElementById('toast');
-                    toast.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
-                    toast.classList.add('opacity-100', 'pointer-events-auto', 'scale-100');
-                }, 300);
-
-                setTimeout(() => {
-                    window.location.href = "login.html"; 
-                }, 1800);
-            } else {
-                alert("Incorrect company name. Please enter the authorized company name to proceed.");
-                document.getElementById('companyInput').focus();
-            }
-        }
-    </script>
+    <!-- EXTERNAL SCRIPT -->
+    <script src="homepage.js"></script>
 </body>
 </html>

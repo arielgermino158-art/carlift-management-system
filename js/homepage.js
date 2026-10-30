@@ -39,7 +39,37 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // 3. Fetch Real-time Passenger Count para sa Today's Bookings
+    fetchTotalBookingsCount();
 });
+
+// Function para kunin ang kabuuang bilang ng mga pasahero mula sa backend API
+async function fetchTotalBookingsCount() {
+    try {
+        const response = await fetch('/api/reports/summary');
+        const data = await response.json();
+        
+        const bookingsCounter = document.getElementById('totalBookingsCount');
+        if (bookingsCounter) {
+            let totalCount = 0;
+            if (data && data.passengers && Array.isArray(data.passengers)) {
+                totalCount = data.passengers.length;
+            } else if (data && typeof data.count !== 'undefined') {
+                totalCount = data.count;
+            } else {
+                totalCount = 1429; // Fallback kung sakaling walang mahanap
+            }
+            bookingsCounter.innerText = totalCount.toLocaleString();
+        }
+    } catch (err) {
+        console.warn("Hindi nakuha ang dynamic count, ginagamit ang default.", err);
+        const bookingsCounter = document.getElementById('totalBookingsCount');
+        if (bookingsCounter) {
+            bookingsCounter.innerText = "1,429";
+        }
+    }
+}
 
 function openAdminModal() {
     const adminModal = document.getElementById('adminModal');
@@ -55,53 +85,54 @@ function openAdminModal() {
 function closeAdminModal() {
     const adminModal = document.getElementById('adminModal');
     const input = document.getElementById('companyInput');
-    
+     
     if (adminModal) adminModal.classList.add('hidden');
     if (input) input.value = '';
 }
 
-// 3. Loading Micro-interaction & Toast Notification Feedback
+// 4. Loading Micro-interaction & Toast Notification Feedback
 function verifyAdmin(event) {
     event.preventDefault();
     const input = document.getElementById('companyInput');
-    const companyName = input ? input.value.trim() : "";
-    
-    if (companyName !== "") {
-        const submitBtn = document.getElementById('submitBtn');
-        const btnText = document.getElementById('btnText');
-        const btnSpinner = document.getElementById('btnSpinner');
-        
-        // I-activate ang loading state ng button
+    const companyName = input ? input.value.trim().toLowerCase() : "";
+     
+    const validNames = ["ms sajjad khan", "ms carlift", "sajjad khan", "sajjad"];
+
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
+     
+    if (validNames.some(name => companyName.includes(name))) {
+        const adminModal = document.getElementById('adminModal');
+        if (adminModal) adminModal.classList.add('hidden');
+
         submitBtn.disabled = true;
         btnText.textContent = "Verifying...";
         btnSpinner.classList.remove('hidden');
 
-        // Kunwari ay may konting delay para sa server response (UX Loading State)
         setTimeout(() => {
-            const adminModal = document.getElementById('adminModal');
-            if (adminModal) adminModal.classList.add('hidden');
-
-            // Ipakita ang Toast Notification
             showToast();
 
-            // I-redirect matapos ang toast
             setTimeout(() => {
                 window.location.href = 'login.html';
             }, 1200);
         }, 800);
+    } else {
+        alert("Incorrect company name. Please enter the authorized company name to proceed.");
+        if (input) input.focus();
     }
 }
 
-// 4. Toast Notification Trigger Logic
+// 5. Toast Notification Trigger Logic
 function showToast() {
     const toast = document.getElementById('toast');
     if (toast) {
-        toast.classList.remove('translate-y-24', 'opacity-0');
-        toast.classList.add('translate-y-0', 'opacity-100');
+        toast.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
+        toast.classList.add('opacity-100', 'pointer-events-auto', 'scale-100');
     }
 }
 
-// 5. Backdrop Click para mag-close automatic ang Modal
+// 6. Backdrop Click para mag-close automatic ang Modal
 window.addEventListener('click', (event) => {
     const adminModal = document.getElementById('adminModal');
     if (event.target === adminModal) {
