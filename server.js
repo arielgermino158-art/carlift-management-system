@@ -448,6 +448,24 @@ app.delete('/api/passengers/:id', verifyAdminToken, async (req, res) => {
   }
 });
 
+// ==========================================
+// PUBLIC HOMEPAGE API: TOTAL PASSENGERS COUNT
+// ==========================================
+app.get('/api/public/passenger-count', async (req, res) => {
+  try {
+    const result = await db.query("SELECT COUNT(*) as count FROM passengers");
+    const totalPassengers = parseInt(result.rows[0].count, 10) || 0;
+    
+    res.json({
+      success: true,
+      count: totalPassengers
+    });
+  } catch (err) {
+    console.error("Public Count Error:", err);
+    res.status(500).json({ success: false, count: 0 });
+  }
+});
+
 // Fallback 404 para sa mga hindi kilalang API routes (Express 5 Compatible Syntax)
 app.use('/api/*splat', (req, res) => {
   res.status(404).json({ success: false, message: 'API route not found.' });

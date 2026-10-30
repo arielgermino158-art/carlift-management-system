@@ -160,7 +160,7 @@
                                 </div>
                             </div>
 
-                            <!-- DYNAMIC TOTAL PASSENGERS CARD -->
+                            <!-- TOTAL PASSENGERS CARD -->
                             <div class="bg-slate-900/80 p-3 sm:p-4 rounded-xl border border-slate-800 flex items-center justify-between">
                                 <div>
                                     <p class="text-[10px] sm:text-xs text-slate-400">Total Passengers</p>
@@ -491,7 +491,7 @@
         </div>
     </div>
 
-    <!-- INTERACTIVITY & DYNAMIC COUNTER SCRIPT -->
+    <!-- INTERACTIVITY & PUBLIC PASSENGER COUNT SCRIPT -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             // Scroll Reveal Animation Observer
@@ -536,28 +536,22 @@
                 });
             }
 
-            // Tawagin ang pag-fetch ng totoong bilang ng pasahero
+            // Tawagin ang public endpoint para makuha ang totoong bilang mula sa database
             fetchTotalPassengersCount();
         });
 
-        // Function para kunin ang totoong bilang ng mga pasahero mula sa API/Database
+        // Function para kunin ang totoong bilang ng pasahero gamit ang ating bagong public endpoint
         async function fetchTotalPassengersCount() {
             try {
-                const response = await fetch('/api/reports/summary');
+                const response = await fetch('/api/public/passenger-count');
                 const data = await response.json();
                 
                 const counterElem = document.getElementById('totalPassengersCount');
-                if (counterElem) {
-                    let totalCount = 0;
-                    if (data && data.passengers && Array.isArray(data.passengers)) {
-                        totalCount = data.passengers.filter(p => p.status === 'Active' || p.status !== 'Pending Payment').length;
-                    } else if (data && typeof data.count !== 'undefined') {
-                        totalCount = data.count;
-                    }
-                    counterElem.innerText = totalCount.toLocaleString();
+                if (counterElem && data && data.success) {
+                    counterElem.innerText = data.count.toLocaleString();
                 }
             } catch (err) {
-                console.warn("Error fetching passenger count:", err);
+                console.warn("Hindi ma-fetch ang total passengers count:", err);
             }
         }
 
