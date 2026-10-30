@@ -70,20 +70,20 @@
 </head>
 <body class="bg-darkBg text-slate-100 antialiased selection:bg-blue-500 selection:text-white w-full overflow-x-hidden">
 
-    <!-- Header / Navbar -->
+    <!-- Header / Navbar (Fixed Layout & Spacing) -->
     <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent w-full">
-        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-20 flex items-center justify-between w-full">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4 w-full">
             
-           <!-- PUBLIC BRANDING: MS Logo (Not Clickable) -->
-<div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
-    <img src="images/ms-logo.jpg" alt="MS Logo" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-500/20 shrink-0">
-    <div class="flex flex-col min-w-0">
-        <span class="text-xs sm:text-base lg:text-lg font-bold tracking-wider text-white leading-tight truncate">SAJJAD <span class="text-blue-500">KHAN</span></span>
-    </div>
-</div>
+            <!-- PUBLIC BRANDING: MS Logo (NOT CLICKABLE) -->
+            <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
+                <img src="images/ms-logo.jpg" alt="MS Logo" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-500/20 shrink-0">
+                <div class="flex flex-col min-w-0">
+                    <span class="text-xs sm:text-base lg:text-lg font-bold tracking-wider text-white leading-tight truncate">SAJJAD <span class="text-blue-500">KHAN</span></span>
+                </div>
+            </div>
 
-            <!-- Desktop Navigation -->
-            <nav class="#hidden lg:flex items-center space-x-6 text-sm font-medium text-slate-300">
+            <!-- Desktop Navigation (Proper Spacing & Hidden on Mobile/Tablet) -->
+            <nav class="hidden xl:flex items-center space-x-5 text-sm font-medium text-slate-300 shrink-0">
                 <a href="#features" class="nav-link hover:text-blue-400 transition py-1 relative">Features</a>
                 <a href="#routes" class="nav-link hover:text-blue-400 transition py-1 relative">Routes</a>
                 <a href="#fleet" class="nav-link hover:text-blue-400 transition py-1 relative">Fleet</a>
@@ -93,12 +93,12 @@
                 <a href="#contact" class="nav-link hover:text-blue-400 transition py-1 relative">Contact</a>
             </nav>
 
-            <!-- Action Buttons (Register Only) -->
-            <div class="flex items-center space-x-2 shrink-0">
-                <a href="index.html" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-lg shadow-blue-600/35 shrink-0">Register</a>
+            <!-- Action Buttons (Register Only & Burger Menu) -->
+            <div class="flex items-center space-x-3 shrink-0">
+                <a href="index.html" class="px-4 py-2 text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-lg shadow-blue-600/35 shrink-0">Register</a>
                 
-                <!-- Mobile Menu Button -->
-                <button id="mobileMenuBtn" class="lg:hidden p-1.5 sm:p-2 text-slate-300 hover:text-white focus:outline-none cursor-pointer shrink-0">
+                <!-- Mobile Menu Button (Visible on Desktop & Mobile to prevent overlap) -->
+                <button id="mobileMenuBtn" class="xl:hidden p-2 text-slate-300 hover:text-white focus:outline-none cursor-pointer shrink-0 bg-slate-900/60 border border-slate-800 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
@@ -106,8 +106,8 @@
             </div>
         </div>
 
-        <!-- Mobile Dropdown Menu -->
-        <div id="mobileMenu" class="absolute top-20 left-0 right-0 glass-panel border-b border-slate-800 p-5 flex flex-col space-y-3 shadow-2xl hidden lg:hidden transition-all duration-300 w-full">
+        <!-- Dropdown Menu (Mobile & Tablet) -->
+        <div id="mobileMenu" class="absolute top-20 left-0 right-0 glass-panel border-b border-slate-800 p-5 flex flex-col space-y-3 shadow-2xl hidden transition-all duration-300 w-full">
             <a href="#features" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 border-b border-slate-800/60 text-sm">Features</a>
             <a href="#routes" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 border-b border-slate-800/60 text-sm">Routes</a>
             <a href="#fleet" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 border-b border-slate-800/60 text-sm">Fleet</a>
@@ -117,6 +117,32 @@
             <a href="#contact" class="mobile-link text-slate-300 hover:text-blue-400 font-medium py-2 text-sm">Contact</a>
         </div>
     </header>
+
+    <!-- FLOATING LANGUAGE SELECTOR WIDGET -->
+    <div class="fixed bottom-6 left-6 z-40">
+        <div class="relative">
+            <button onclick="toggleLangDropdown()" id="langToggleBtn" class="flex items-center space-x-2 px-4 py-2.5 rounded-full glass-panel border border-amber-500/40 text-white text-xs sm:text-sm font-medium shadow-2xl hover:border-amber-400 transition cursor-pointer bg-slate-950/90">
+                <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span id="currentLangText">English</span>
+                <svg class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200" id="langArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+            <div id="langDropdownMenu" class="absolute bottom-12 left-0 w-48 glass-panel rounded-xl p-1.5 shadow-2xl border border-slate-700/80 hidden flex-col space-y-1 bg-slate-950/95 backdrop-blur-xl">
+                <button onclick="selectLanguage('English', 'GB')" class="flex items-center space-x-3 w-full px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs sm:text-sm font-semibold text-left transition">
+                    <span class="text-[10px] font-mono px-1 bg-amber-500/20 rounded">GB</span>
+                    <span>English</span>
+                </button>
+                <button onclick="selectLanguage('Arabic (العربية)', 'AE')" class="flex items-center space-x-3 w-full px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white text-xs sm:text-sm text-left transition">
+                    <span class="text-[10px] font-mono px-1 bg-slate-800 rounded text-slate-400">AE</span>
+                    <span>العربية (Arabic)</span>
+                </button>
+                <button onclick="selectLanguage('Français (French)', 'FR')" class="flex items-center space-x-3 w-full px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white text-xs sm:text-sm text-left transition">
+                    <span class="text-[10px] font-mono px-1 bg-slate-800 rounded text-slate-400">FR</span>
+                    <span>Français (French)</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Hero Section -->
     <section class="pt-24 pb-12 sm:pt-36 sm:pb-20 md:pt-40 md:pb-28 relative overflow-hidden hero-bg w-full">
@@ -153,7 +179,7 @@
                             <div class="bg-slate-900/80 p-3 sm:p-4 rounded-xl border border-slate-800 flex items-center justify-between">
                                 <div>
                                     <p class="text-[10px] sm:text-xs text-slate-400">Active Carlifts / Buses</p>
-                                    <p class="text-base sm:text-xl font-bold text-white"></p>
+                                    <p class="text-base sm:text-xl font-bold text-white">24 / 28</p>
                                 </div>
                                 <div class="p-2 sm:p-3 bg-blue-500/10 rounded-lg text-blue-400 shrink-0">
                                     <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -444,54 +470,7 @@
         <p>&copy; 2026 Carlift Management System. All rights reserved.</p>
     </footer>
 
-    <!-- ADMIN VERIFICATION MODAL -->
-    <div id="adminModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 hidden">
-        <div class="glass-panel w-full max-w-md p-5 sm:p-8 rounded-2xl border border-slate-700 shadow-2xl relative transform transition-all">
-            <div class="flex items-center space-x-3 mb-5 sm:mb-6">
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                </div>
-                <div class="min-w-0">
-                    <h3 class="text-xs sm:text-base lg:text-lg font-bold text-white truncate">Admin Portal Access</h3>
-                    <p class="text-[10px] sm:text-xs text-slate-400 truncate">Authorized administrators only</p>
-                </div>
-            </div>
-
-            <form onsubmit="verifyAdmin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-[10px] sm:text-xs font-medium text-slate-300 mb-1">PUT YOUR COMPANY NAME</label>
-                    <input type="text" id="companyInput" required placeholder="" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 transition">
-                </div>
-
-                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
-                    <button type="button" onclick="closeAdminModal()" class="w-full sm:w-1/2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-semibold rounded-xl transition cursor-pointer">Cancel</button>
-                    
-                    <button type="submit" id="submitBtn" class="w-full sm:w-1/2 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold rounded-xl transition shadow-lg shadow-blue-600/30 cursor-pointer flex items-center justify-center space-x-2">
-                        <span id="btnText">Continue</span>
-                        <svg id="btnSpinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- SUCCESS VERIFICATION CENTERED MODAL -->
-    <div id="toast" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-300 scale-95">
-        <div class="glass-panel w-full max-w-sm p-6 sm:p-8 rounded-2xl border border-emerald-500/40 shadow-2xl text-center space-y-4">
-            <div class="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 animate-bounce">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-            </div>
-            <div class="space-y-1">
-                <h3 class="text-base sm:text-xl font-bold text-white">Verification Successful!</h3>
-                <p class="text-xs sm:text-sm text-slate-300">Redirecting to login portal...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- INTERACTIVITY & PUBLIC PASSENGER COUNT SCRIPT -->
+    <!-- INTERACTIVITY & SCRIPT -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             // Scroll Reveal Animation Observer
@@ -536,11 +515,34 @@
                 });
             }
 
-            // Tawagin ang public endpoint para makuha ang totoong bilang mula sa database
+            // Close floating language dropdown on outside click
+            document.addEventListener('click', function(e) {
+                const langMenu = document.getElementById('langDropdownMenu');
+                const langBtn = document.getElementById('langToggleBtn');
+                if (langMenu && langBtn && !langMenu.contains(e.target) && !langBtn.contains(e.target)) {
+                    langMenu.classList.add('hidden');
+                }
+            });
+
+            // Fetch Real-time Passenger Count
             fetchTotalPassengersCount();
         });
 
-        // Function para kunin ang totoong bilang ng pasahero gamit ang ating bagong public endpoint
+        // Floating Language Dropdown Controls
+        function toggleLangDropdown() {
+            const menu = document.getElementById('langDropdownMenu');
+            if (menu) {
+                menu.classList.toggle('hidden');
+            }
+        }
+
+        function selectLanguage(langName, code) {
+            document.getElementById('currentLangText').innerText = langName;
+            document.getElementById('langDropdownMenu').classList.add('hidden');
+            console.log("Selected Language:", code);
+        }
+
+        // Function para kunin ang totoong bilang ng pasahero mula sa public endpoint
         async function fetchTotalPassengersCount() {
             try {
                 const response = await fetch('/api/public/passenger-count');
@@ -552,47 +554,6 @@
                 }
             } catch (err) {
                 console.warn("Hindi ma-fetch ang total passengers count:", err);
-            }
-        }
-
-        // Admin Modal Controls & Verification Logic
-        function openAdminModal() {
-            document.getElementById('adminModal').classList.remove('hidden');
-            document.getElementById('companyInput').focus();
-        }
-
-        function closeAdminModal() {
-            document.getElementById('adminModal').classList.add('hidden');
-            document.getElementById('companyInput').value = '';
-        }
-
-        function verifyAdmin(event) {
-            event.preventDefault();
-            const inputVal = document.getElementById('companyInput').value.trim().toLowerCase();
-            
-            const validNames = ["ms sajjad khan", "ms carlift", "sajjad khan", "sajjad"];
-
-            const btnText = document.getElementById('btnText');
-            const btnSpinner = document.getElementById('btnSpinner');
-
-            if (validNames.some(name => inputVal.includes(name))) {
-                document.getElementById('adminModal').classList.add('hidden');
-
-                btnText.textContent = "Verifying...";
-                btnSpinner.classList.remove('hidden');
-
-                setTimeout(() => {
-                    const toast = document.getElementById('toast');
-                    toast.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
-                    toast.classList.add('opacity-100', 'pointer-events-auto', 'scale-100');
-                }, 300);
-
-                setTimeout(() => {
-                    window.location.href = "login.html"; 
-                }, 1800);
-            } else {
-                alert("Incorrect company name. Please enter the authorized company name to proceed.");
-                document.getElementById('companyInput').focus();
             }
         }
     </script>
