@@ -118,32 +118,6 @@
         </div>
     </header>
 
-    <!-- FLOATING LANGUAGE SELECTOR WIDGET -->
-    <div class="fixed bottom-6 left-6 z-40">
-        <div class="relative">
-            <button onclick="toggleLangDropdown()" id="langToggleBtn" class="flex items-center space-x-2 px-4 py-2.5 rounded-full glass-panel border border-amber-500/40 text-white text-xs sm:text-sm font-medium shadow-2xl hover:border-amber-400 transition cursor-pointer bg-slate-950/90">
-                <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span id="currentLangText">English</span>
-                <svg class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200" id="langArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
-            </button>
-
-            <div id="langDropdownMenu" class="absolute bottom-12 left-0 w-48 glass-panel rounded-xl p-1.5 shadow-2xl border border-slate-700/80 hidden flex-col space-y-1 bg-slate-950/95 backdrop-blur-xl">
-                <button onclick="selectLanguage('English', 'GB')" class="flex items-center space-x-3 w-full px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs sm:text-sm font-semibold text-left transition">
-                    <span class="text-[10px] font-mono px-1 bg-amber-500/20 rounded">GB</span>
-                    <span>English</span>
-                </button>
-                <button onclick="selectLanguage('Arabic (العربية)', 'AE')" class="flex items-center space-x-3 w-full px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white text-xs sm:text-sm text-left transition">
-                    <span class="text-[10px] font-mono px-1 bg-slate-800 rounded text-slate-400">AE</span>
-                    <span>العربية (Arabic)</span>
-                </button>
-                <button onclick="selectLanguage('Français (French)', 'FR')" class="flex items-center space-x-3 w-full px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white text-xs sm:text-sm text-left transition">
-                    <span class="text-[10px] font-mono px-1 bg-slate-800 rounded text-slate-400">FR</span>
-                    <span>Français (French)</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Hero Section -->
     <section class="pt-24 pb-12 sm:pt-36 sm:pb-20 md:pt-40 md:pb-28 relative overflow-hidden hero-bg w-full">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
