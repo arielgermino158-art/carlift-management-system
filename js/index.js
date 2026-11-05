@@ -24,11 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-
-  const pTimeInput = document.getElementById('pickupTime');
-  const rTimeInput = document.getElementById('returnTime');
-  if (pTimeInput && !pTimeInput.value) pTimeInput.value = '00:00';
-  if (rTimeInput && !rTimeInput.value) rTimeInput.value = '12:00';
 });
 
 // ==========================================
@@ -151,28 +146,13 @@ async function proceedRegistration() {
   const nameVal = document.getElementById('name').value.trim();
   const whatsappNumber = '+971 ' + whatsappInput;
 
-  const formatTime = (timeStr) => {
-    if (!timeStr) return '00:00';
-    const [h, m] = timeStr.split(':');
-    const hour = parseInt(h, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const formattedHour = hour % 12 || 12;
-    return `${formattedHour}:${m} ${ampm}`;
-  };
-
-  const pTime = formatTime(document.getElementById('pickupTime').value);
-  const rTime = formatTime(document.getElementById('returnTime').value);
-  const combinedSchedule = `${selectedDays.join(', ')} | ${pTime} Pickup / ${rTime} Return`;
+  // Since wala namang time pickers sa index.html, gagawin nating working days lang ang schedule
+  const combinedSchedule = selectedDays.join(', ');
 
   const rawJoinDate = document.getElementById('joinDate').value;
-  let formattedJoinDate = rawJoinDate;
-  if (rawJoinDate) {
-    if (rawJoinDate.includes('-') && rawJoinDate.indexOf('-') === 4) {
-      const parts = rawJoinDate.split('-');
-      formattedJoinDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    } else if (rawJoinDate.includes('/')) {
-      formattedJoinDate = rawJoinDate.replace(/\//g, '-');
-    }
+  if (!rawJoinDate) {
+    alert("Please select a join date.");
+    return;
   }
 
   const data = {
@@ -183,7 +163,7 @@ async function proceedRegistration() {
     pickup: document.getElementById('pickup').value.trim(),
     dropoff: document.getElementById('dropoff').value.trim(),
     schedule: combinedSchedule,
-    join_date: formattedJoinDate
+    join_date: rawJoinDate
   };
 
   try {
@@ -201,7 +181,7 @@ async function proceedRegistration() {
       statusResult.style.display = 'block';
 
       // ==========================================
-      // GENERATE DYNAMIC QR CODE FOR THIS USER (JSON format na may Passenger ID)
+      // GENERATE DYNAMIC QR CODE FOR THIS USER
       // ==========================================
       const qrContainer = document.getElementById('qrcode');
       qrContainer.innerHTML = ""; 
@@ -220,7 +200,7 @@ async function proceedRegistration() {
 
       document.getElementById('qrDetailsText').textContent = `${nameVal} (${whatsappNumber}) - ID: ${passengerId}`;
 
-      // Buksan ang QR modal at MANATILI ITO hanggang pindutin ang "I-close ang QR" button
+      // Buksan ang QR modal
       openQrModal();
 
     } else {
@@ -238,11 +218,6 @@ function resetRegistrationForm() {
   form.reset();
   form.style.display = 'block';
   statusResult.style.display = 'none';
-
-  const pTimeInput = document.getElementById('pickupTime');
-  const rTimeInput = document.getElementById('returnTime');
-  if (pTimeInput) pTimeInput.value = '00:00';
-  if (rTimeInput) rTimeInput.value = '12:00';
 
   photoBase64 = '';
   const photoPreview = document.getElementById('photoPreview');
